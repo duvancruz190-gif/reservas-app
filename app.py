@@ -1,25 +1,32 @@
 import streamlit as st
 import os
 import fitz  # PyMuPDF
-from streamlit_pdf_viewer import pdf_viewer # Nuevo visor profesional
+from streamlit_pdf_viewer import pdf_viewer
+import json
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
+# Carpetas principales
 for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
     os.makedirs(carpeta, exist_ok=True)
 
+# --- ÁREAS ---
+areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
+         "Recursos Humanos", "Ambiental", "Salud Ocupacional"]
+
+# --- USUARIOS ---
 usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
     "ingeniero": {"password": "999", "rol": "ingeniero"},
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# --- 2. LÓGICA DE SESIÓN ---
+# --- SESIÓN ---
 if "login" not in st.session_state:
     st.session_state.login = False
 
-# --- PANTALLA DE LOGIN ---
+# --- LOGIN ---
 if not st.session_state.login:
     st.title("🔐 Acceso al Sistema")
     u = st.text_input("Usuario")
@@ -47,31 +54,38 @@ else:
     st.title("📋 Gestión de Reservas")
     rol = st.session_state.get('rol')
 
-    # --- VISTA: USUARIO ---
+    # ===========================
+    # --- VISTA USUARIO ---
+    # ===========================
     if rol == "usuario":
         st.header("📤 Enviar Nueva Reserva")
+        area = st.selectbox("Selecciona el área", areas)
         arch = st.file_uploader("Subir PDF", type=["pdf"])
         if st.button("Enviar al Ingeniero"):
             if arch:
-                with open(f"reservas/pendientes/{arch.name}", "wb") as f:
+                carpeta_area = f"reservas/pendientes/{area}"
+                os.makedirs(carpeta_area, exist_ok=True)
+                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
                     f.write(arch.getbuffer())
-                st.success("✅ Documento enviado.")
+                st.success(f"✅ Documento enviado a {area}.")
             else:
                 st.warning("Selecciona un archivo.")
 
-    # --- VISTA: INGENIERO ---
+    # ===========================
+    # --- VISTA INGENIERO ---
+    # ===========================
     elif rol == "ingeniero":
         st.header("✍️ Revisión y Firma")
-        pendientes = os.listdir("reservas/pendientes")
-        
+        area = st.selectbox("Selecciona el área a revisar", areas)
+        carpeta_area = f"reservas/pendientes/{area}"
+        pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+
         if not pendientes:
-            st.info("No hay documentos pendientes.")
-        
+            st.info("No hay documentos pendientes en esta área.")
+
         for arc in pendientes:
             with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
-                ruta_full = f"reservas/pendientes/{arc}"
-                
-                # VISOR PROFESIONAL (Evita el bloqueo del navegador)
+                ruta_full = f"{carpeta_area}/{arc}"
                 st.write("### Previsualización:")
                 try:
                     pdf_viewer(ruta_full, width=700)
@@ -79,29 +93,48 @@ else:
                     st.error("El visor falló. Usa el botón de abajo para revisar.")
                     with open(ruta_full, "rb") as f:
                         st.download_button("📂 Descargar para revisar", f, file_name=arc)
-                
+
                 st.write("---")
-                if st.button(f"🖋️ Firmar y Enviar a Almacén", key=f"f_{arc}"):
-                    ruta_firma = "reservas/firmas/ingeniero.png"
+                if st.button(f"🖋️ Firmar y Enviar a Almacén", key=f"f_{area}_{arc}"):
+                    ruta_firma = "reservas/firmas/calidad.jpeg"  # Cambia según firma
                     if os.path.exists(ruta_firma):
                         doc = fitz.open(ruta_full)
                         pagina = doc[0]
-                        # Colocación de firma (Ajustable)
+                        # Ajusta la posición de la firma
                         pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename=ruta_firma)
-                        doc.save(f"reservas/firmadas/{arc}")
+                        carpeta_firmadas = f"reservas/firmadas/{area}"
+                        os.makedirs(carpeta_firmadas, exist_ok=True)
+                        doc.save(f"{carpeta_firmadas}/{arc}")
                         doc.close()
                         os.remove(ruta_full)
-                        st.success("✅ Firmado correctamente.")
+                        st.success("✅ Firmado correctamente y enviado a almacen.")
                         st.rerun()
                     else:
-                        st.error("❌ No existe la firma 'ingeniero.png' en reservas/firmas/")
+                        st.error(f"❌ No existe la firma 'calidad.jpeg' en reservas/firmas/")
 
-    # --- VISTA: ALMACÉN ---
+    # ===========================
+    # --- VISTA ALMACÉN ---
+    # ===========================
     elif rol == "almacen":
         st.header("📦 Documentos Listos")
-        firmados = os.listdir("reservas/firmadas")
+        estado_file = "reservas/firmadas/estado.json"
+        if os.path.exists(estado_file):
+            with open(estado_file, "r") as f:
+                estados = json.load(f)
+        else:
+            estados = {}
+
+        area = st.selectbox("Selecciona el área", areas)
+        carpeta_area = f"reservas/firmadas/{area}"
+        firmados = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+
         for f in firmados:
+            # Azul = no descargado, Amarillo = descargado
+            color = "💛" if estados.get(f"{area}/{f}", False) else "💙"
             col_a, col_b = st.columns([3, 1])
-            col_a.write(f"✅ {f}")
-            with open(f"reservas/firmadas/{f}", "rb") as file:
-                col_b.download_button("Descargar", file, file_name=f, key=f"dl_{f}")
+            col_a.markdown(f"{color} {f}")
+            with open(f"{carpeta_area}/{f}", "rb") as file:
+                if col_b.download_button("Descargar", file, file_name=f, key=f"dl_{area}_{f}"):
+                    estados[f"{area}/{f}"] = True  # Marca como descargado
+                    with open(estado_file, "w") as ff:
+                        json.dump(estados, ff)
