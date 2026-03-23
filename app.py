@@ -1,108 +1,117 @@
 import streamlit as st
 import os
-import fitz
-from datetime import datetime
+import fitz  # PyMuPDF
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Sistema de Reservas", layout="centered")
-
-# Crear carpetas necesarias
-for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
+# 1. CONFIGURACIÓN DE CARPETAS
+# Creamos las rutas necesarias al iniciar la app
+carpetas = ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]
+for carpeta in carpetas:
     os.makedirs(carpeta, exist_ok=True)
 
-# Usuarios
+# 2. BASE DE DATOS DE USUARIOS
 usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
     "ingeniero": {"password": "999", "rol": "ingeniero"},
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# --- LÓGICA DE SESIÓN ---
+# 3. CONTROL DE SESIÓN
 if "login" not in st.session_state:
     st.session_state.login = False
     st.session_state.rol = None
 
-# Función para salir
-def salir():
-    st.session_state.login = False
-    st.session_state.rol = None
-    st.rerun()
-
 # --- PANTALLA DE LOGIN ---
 if not st.session_state.login:
-    st.title("🔑 Ingreso al Sistema")
-    user = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
+    st.title("🔐 Acceso al Sistema")
+    with st.container():
+        user = st.text_input("Nombre de Usuario")
+        password = st.text_input("Contraseña", type="password")
+        
+        if st.button("Ingresar"):
+            if user in usuarios and usuarios[user]["password"] == password:
+                st.session_state.login = True
+                st.session_state.rol = usuarios[user]["rol"]
+                st.rerun()
+            else:
+                st.error("⚠️ Usuario o contraseña incorrectos")
 
-    if st.button("Ingresar"):
-        if user in usuarios and usuarios[user]["password"] == password:
-            st.session_state.login = True
-            st.session_state.rol = usuarios[user]["rol"]
-            st.rerun()
-        else:
-            st.error("Usuario o contraseña incorrectos")
-
-# --- PANTALLA PRINCIPAL (LOGUEADO) ---
+# --- PANTALLA PRINCIPAL (PARA TODOS LOS ROLES) ---
 else:
-    # 🚪 EL BOTÓN DE SALIR (En la barra lateral)
+    # 🚪 BARRA LATERAL: Aparece para Usuario, Ingeniero y Almacén
     with st.sidebar:
-        st.write(f"Conectado como: **{st.session_state.rol.upper()}**")
-        if st.button("Cerrar Sesión"):
-            salir()
+        st.header(f"👤 {st.session_state.rol.upper()}")
+        st.write("---")
+        if st.button("Cerrar Sesión", use_container_width=True):
+            st.session_state.login = False
+            st.session_state.rol = None
+            st.rerun()
 
-    st.title("📋 Sistema de Reservas")
+    st.title("Sistema de Gestión de Reservas")
     rol = st.session_state.rol
 
-    # ROL: USUARIO
+    # --- FLUJO USUARIO ---
     if rol == "usuario":
-        st.subheader("Subir PDF")
-        archivo = st.file_uploader("Seleccione el archivo de reserva", type=["pdf"])
-
-        if st.button("Enviar"):
-            if archivo:
-                # Usamos getbuffer() para asegurar que se guarde bien
-                with open(f"reservas/pendientes/{archivo.name}", "wb") as f:
-                    f.write(archivo.getbuffer())
-                st.success("✅ Enviado correctamente al ingeniero.")
-            else:
-                st.warning("Por favor, sube un archivo primero.")
-
-    # ROL: INGENIERO
-    elif rol == "ingeniero":
-        st.subheader("✍️ Panel de Firma (Ingeniero)")
-        archivos = os.listdir("reservas/pendientes")
-
-        if not archivos:
-            st.info("No hay archivos pendientes.")
+        st.subheader("📤 Enviar Nueva Reserva")
+        archivo = st.file_uploader("Subir archivo PDF", type=["pdf"])
         
-        for arch in archivos:
-            col1, col2 = st.columns([3, 1])
-            col1.write(arch)
-            if col2.button("Firmar", key=arch):
-                # Proceso de firma
-                pdf = fitz.open(f"reservas/pendientes/{arch}")
-                pagina = pdf[0]
-                firma = "reservas/firmas/ingeniero.png"
+        if st.button("Enviar al Ingeniero"):
+            if archivo:
+                path = f"reservas/pendientes/{archivo.name}"
+                with open(path, "wb") as f:
+                    f.write(archivo.getbuffer()) # buffer asegura que el archivo se guarde completo
+                st.success(f"✅ ¡Éxito! El archivo '{archivo.name}' ya está en la bandeja del Ingeniero.")
+            else:
+                st.warning("⚠️ Selecciona un archivo PDF primero.")
+
+    # --- FLUJO INGENIERO ---
+    elif rol == "ingeniero":
+        st.subheader("✍️ Bandeja de Firmas")
+        pendientes = os.listdir("reservas/pendientes")
+        
+        if not pendientes:
+            st.info("No hay documentos pendientes por ahora.")
+        else:
+            for arch in pendientes:
+                col1, col2 = st.columns([3, 1])
+                col1.write(f"📄 {arch}")
                 
-                if os.path.exists(firma):
-                    rect = fitz.Rect(300, 500, 500, 650)
-                    pagina.insert_image(rect, filename=firma)
-                    pdf.save(f"reservas/firmadas/{arch}")
-                    pdf.close()
-                    os.remove(f"reservas/pendientes/{arch}")
-                    st.success(f"Firmado: {arch}")
-                    st.rerun() # Esto actualiza la lista automáticamente
-                else:
-                    st.error("Falta el archivo de firma en 'reservas/firmas/ingeniero.png'")
+                if col2.button("Firmar", key=arch):
+                    ruta_in = f"reservas/pendientes/{arch}"
+                    ruta_out = f"reservas/firmadas/{arch}"
+                    ruta_firma = "reservas/firmas/ingeniero.png"
 
-    # ROL: ALMACEN
+                    if os.path.exists(ruta_firma):
+                        doc = fitz.open(ruta_in)
+                        pagina = doc[0]
+                        # Posición de la firma (x0, y0, x1, y1)
+                        rect = fitz.Rect(400, 700, 550, 800) 
+                        pagina.insert_image(rect, filename=ruta_firma)
+                        doc.save(ruta_out)
+                        doc.close()
+                        
+                        os.remove(ruta_in) # Se quita de pendientes
+                        st.success("✅ Documento firmado y enviado a Almacén.")
+                        st.rerun() # Actualiza la lista inmediatamente
+                    else:
+                        st.error("❌ Error: No se encuentra la imagen 'ingeniero.png' en la carpeta 'reservas/firmas'")
+
+    # --- FLUJO ALMACÉN ---
     elif rol == "almacen":
-        st.subheader("📦 Descargar Firmados")
-        archivos_firmados = os.listdir("reservas/firmadas")
-
-        if not archivos_firmados:
-            st.info("No hay archivos listos.")
-
-        for arch in archivos_firmados:
-            with open(f"reservas/firmadas/{arch}", "rb") as f:
-                st.download_button(f"Descargar {arch}", f, file_name=arch)
+        st.subheader("📦 Reservas Listas para Despacho")
+        firmados = os.listdir("reservas/firmadas")
+        
+        if not firmados:
+            st.info("No hay documentos firmados todavía.")
+        else:
+            for arch_firmado in firmados:
+                col1, col2 = st.columns([3, 1])
+                col1.write(f"✅ {arch_firmado}")
+                
+                with open(f"reservas/firmadas/{arch_firmado}", "rb") as f:
+                    col2.download_button(
+                        label="Descargar",
+                        data=f,
+                        file_name=arch_firmado,
+                        mime="application/pdf",
+                        key=f"dl_{arch_firmado}"
+                    )
