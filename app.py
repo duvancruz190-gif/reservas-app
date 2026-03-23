@@ -3,14 +3,14 @@ import os
 import fitz
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
-from streamlit_pdf_viewer import pdf_viewer
 import json
 import numpy as np
 
-# --- CONFIGURACIÓN ---
+# -----------------------------
+# CONFIGURACIÓN
+# -----------------------------
 st.set_page_config(page_title="Gestión de Reservas Interactiva", layout="wide")
 
-# Crear carpetas
 areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
          "Recursos Humanos", "Ambiental", "Salud Ocupacional",
          "Marketing", "Financiera", "Almacén"]
@@ -21,7 +21,6 @@ for area in areas:
     os.makedirs(f"reservas/pendientes/{area}", exist_ok=True)
     os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
 
-# Usuarios
 usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
     "ingeniero": {"password": "999", "rol": "ingeniero"},
@@ -31,14 +30,18 @@ usuarios = {
 # Firmas con contraseña
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
-    # agregar más firmas por área
+    # Agrega más firmas por área si quieres
 }
 
-# Sesión
+# -----------------------------
+# SESIÓN
+# -----------------------------
 if "login" not in st.session_state:
     st.session_state.login = False
 
-# --- LOGIN ---
+# -----------------------------
+# LOGIN
+# -----------------------------
 if not st.session_state.login:
     st.title("🔐 Acceso al Sistema")
     u = st.text_input("Usuario")
@@ -51,6 +54,10 @@ if not st.session_state.login:
             st.rerun()
         else:
             st.error("Credenciales incorrectas")
+
+# -----------------------------
+# APP PRINCIPAL
+# -----------------------------
 else:
     # Menú lateral
     with st.sidebar:
@@ -59,13 +66,14 @@ else:
         st.write(f"🔑 Rol: **{st.session_state.get('rol', '').upper()}**")
         st.write("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            for key in list(st.session_state.keys()): del st.session_state[key]
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
             st.rerun()
 
     rol = st.session_state.get('rol')
 
     # ===========================
-    # --- VISTA USUARIO ---
+    # USUARIO
     # ===========================
     if rol == "usuario":
         st.header("📤 Enviar Nueva Reserva")
@@ -81,7 +89,7 @@ else:
                 st.warning("Selecciona un archivo.")
 
     # ===========================
-    # --- VISTA INGENIERO ---
+    # INGENIERO
     # ===========================
     elif rol == "ingeniero":
         st.header("✍️ Revisión y Firma Interactiva")
@@ -96,36 +104,43 @@ else:
             with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
                 ruta_full = f"{carpeta_area}/{arc}"
 
-                # --- Ver PDF ---
-                st.write("### Previsualización del PDF")
-                try:
-                    pdf_viewer(ruta_full, width=700)
-                except:
-                    with open(ruta_full, "rb") as f:
-                        st.download_button("Descargar PDF", f, file_name=arc)
+                # --------------------------
+                # Mostrar PDF
+                # --------------------------
+                pdf_doc = fitz.open(ruta_full)
+                pagina = pdf_doc[0]
+                pix = pagina.get_pixmap()
+                pdf_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                st.image(pdf_img, caption="PDF como referencia", use_column_width=True)
 
-                # --- Contraseña de firma ---
+                # --------------------------
+                # Contraseña y firma
+                # --------------------------
                 if area in firmas_contrasena:
                     info_firma = firmas_contrasena[area]
                     contra_firma = st.text_input("Ingresa la contraseña de la firma", type="password", key=f"pw_{arc}")
 
                     if contra_firma == info_firma["password"]:
                         st.success("✅ Contraseña correcta. Firma lista para arrastrar.")
-                        # Abrir PDF y mostrar primera página
-                        pdf_doc = fitz.open(ruta_full)
-                        pagina = pdf_doc[0]
-                        pix = pagina.get_pixmap()
+
+                        firma_img = Image.open(info_firma["archivo"])
+                        # Convertir firma a array numpy
+                        firma_array = np.array(firma_img)
+
+                        # --------------------------
+                        # Canvas con PDF de fondo
+                        # --------------------------
                         canvas_result = st_canvas(
                             fill_color="rgba(0,0,0,0)",
                             stroke_width=2,
                             stroke_color="blue",
-                            height=pix.height,
+                            background_image=np.array(pdf_img),
                             width=pix.width,
-                            background_color="white",
-                            drawing_mode="freedraw",
+                            height=pix.height,
+                            drawing_mode="image",
                             key=f"canvas_{arc}"
                         )
-                        st.image(Image.open(info_firma["archivo"]), width=150)
+                        st.image(firma_img, width=150, caption="Firma para arrastrar")
 
                         if st.button(f"🖋️ Firmar PDF", key=f"f_{arc}"):
                             if canvas_result.json_data:
@@ -153,7 +168,7 @@ else:
                             st.error("❌ Contraseña incorrecta")
 
     # ===========================
-    # --- VISTA ALMACÉN ---
+    # ALMACÉN
     # ===========================
     elif rol == "almacen":
         st.header("📦 Documentos Listos")
