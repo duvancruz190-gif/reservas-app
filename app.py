@@ -2,93 +2,160 @@ import streamlit as st
 import os
 import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
-import time
+import json
 
-# --- 1. AJUSTES DE RUTAS ABSOLUTAS ---
-ROOT = os.path.dirname(os.path.abspath(__file__))
+# --- 1. CONFIGURACIÓN ---
+st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
-def get_p(relative_path):
-    p = os.path.join(ROOT, relative_path)
-    os.makedirs(os.path.dirname(p), exist_ok=True)
-    return p
+# Carpetas principales
+for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
+    os.makedirs(carpeta, exist_ok=True)
 
-# --- 2. CONFIGURACIÓN ---
-st.set_page_config(page_title="App Reservas", layout="wide")
+# --- ÁREAS ---
+areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
+         "Recursos Humanos", "Ambiental", "Salud Ocupacional",
+         "Marketing", "Financiera", "Almacén"]
 
-# Rutas críticas
-FIRMA_IMG = get_p("reservas/firmas/carlos_alfonso.jpeg")
-DIR_PENDIENTES = get_p("reservas/pendientes/")
-DIR_FIRMADOS = get_p("reservas/firmadas/")
-DIR_TEMP = get_p("reservas/temp/")
+# --- USUARIOS ---
+usuarios = {
+    "usuario": {"password": "123", "rol": "usuario"},
+    "ingeniero": {"password": "999", "rol": "ingeniero"},
+    "almacen": {"password": "000", "rol": "almacen"}
+}
 
-# --- 3. LÓGICA DE FIRMADO ---
-def aplicar_firma(pdf_in, pdf_out, img_path):
-    try:
-        doc = fitz.open(pdf_in)
-        # Rectángulo sobre la línea 'FIRMA 1' (ajusta si es necesario)
-        rect = fitz.Rect(220, 620, 380, 710) 
-        doc[0].insert_image(rect, filename=img_path)
-        doc.save(pdf_out)
-        doc.close()
-        return True
-    except Exception as e:
-        st.error(f"Error técnico: {e}")
-        return False
+# --- FIRMAS CON CONTRASEÑA ---
+firmas_contrasena = {
+    "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
+    # Puedes agregar más áreas con su firma y contraseña:
+    # "Calidad": {"archivo": "reservas/firmas/calidad.jpeg", "password": "5678"},
+}
 
-# --- 4. INTERFAZ ---
-if "auth" not in st.session_state:
-    st.session_state.auth = False
+# --- SESIÓN ---
+if "login" not in st.session_state:
+    st.session_state.login = False
 
-if not st.session_state.auth:
-    st.title("🔐 Login Ingeniería")
-    if st.button("Entrar como Ingeniero (999)"):
-        st.session_state.auth = True
-        st.rerun()
+# --- LOGIN ---
+if not st.session_state.login:
+    st.title("🔐 Acceso al Sistema")
+    u = st.text_input("Usuario")
+    p = st.text_input("Contraseña", type="password")
+    if st.button("Ingresar", use_container_width=True):
+        if u in usuarios and usuarios[u]["password"] == p:
+            st.session_state.login = True
+            st.session_state.rol = usuarios[u]["rol"]
+            st.session_state.user_name = u
+            st.rerun()
+        else:
+            st.error("Credenciales incorrectas")
+
 else:
-    st.sidebar.button("Cerrar Sesión", on_click=lambda: st.session_state.update({"auth": False}))
-    
-    st.header("📋 Gestión de Firmas")
-    
-    # Listar archivos PDF
-    archivos = [f for f in os.listdir(DIR_PENDIENTES) if f.lower().endswith(".pdf")]
-    
-    if not archivos:
-        st.info("No hay documentos pendientes. Sube uno para probar.")
-        # Opcional: Subida rápida para pruebas
-        up = st.file_uploader("Subir PDF de prueba", type="pdf")
-        if up:
-            with open(os.path.join(DIR_PENDIENTES, up.name), "wb") as f:
-                f.write(up.getbuffer())
+    # MENÚ LATERAL
+    with st.sidebar:
+        st.title("📂 Menú Principal")
+        st.write(f"👤 Usuario: **{st.session_state.get('user_name', 'Usuario')}**")
+        st.write(f"🔑 Rol: **{st.session_state.get('rol', '').upper()}**")
+        st.write("---")
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
+            for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
 
-    for arc in archivos:
-        with st.expander(f"📄 Revisar: {arc}"):
-            path_orig = os.path.join(DIR_PENDIENTES, arc)
-            
-            # Previsualización Original (Solo si el archivo existe y es válido)
-            if os.path.exists(path_orig):
-                pdf_viewer(path_orig, width=500, key=f"orig_{arc}")
-            
-            clave = st.text_input("Clave de Firma", type="password", key=f"pw_{arc}")
-            
-            if st.button("🖋️ Firmar y Enviar", key=f"btn_{arc}"):
-                if clave == "1234":
-                    if os.path.exists(FIRMA_IMG):
-                        path_final = os.path.join(DIR_FIRMADOS, arc)
-                        # Firmamos directamente al destino
-                        if aplicar_firma(path_orig, path_final, FIRMA_IMG):
-                            os.remove(path_orig) # Borramos original
-                            st.success("✅ ¡Firmado y enviado a Almacén!")
-                            time.sleep(1)
-                            st.rerun()
-                    else:
-                        st.error(f"Falta la imagen de la firma en: {FIRMA_IMG}")
-                else:
-                    st.error("Clave incorrecta")
+    st.title("📋 Gestión de Reservas")
+    rol = st.session_state.get('rol')
 
-    st.divider()
-    st.subheader("📦 Almacén (Documentos Listos)")
-    firmados = os.listdir(DIR_FIRMADOS)
-    for f in firmados:
-        with open(os.path.join(DIR_FIRMADOS, f), "rb") as file_data:
-            st.download_button(f"📥 Descargar {f}", file_data, file_name=f"FIRMADO_{f}", key=f"dl_{f}")
+    # ===========================
+    # --- VISTA USUARIO ---
+    # ===========================
+    if rol == "usuario":
+        st.header("📤 Enviar Nueva Reserva")
+        area = st.selectbox("Selecciona el área", areas)
+        arch = st.file_uploader("Subir PDF", type=["pdf"])
+        if st.button("Enviar al Ingeniero"):
+            if arch:
+                carpeta_area = f"reservas/pendientes/{area}"
+                os.makedirs(carpeta_area, exist_ok=True)
+                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
+                    f.write(arch.getbuffer())
+                st.success(f"✅ Documento enviado a {area}.")
+            else:
+                st.warning("Selecciona un archivo.")
+
+    # ===========================
+    # --- VISTA INGENIERO ---
+    # ===========================
+    elif rol == "ingeniero":
+        st.header("✍️ Revisión y Firma")
+        area = st.selectbox("Selecciona el área a revisar", areas)
+        carpeta_area = f"reservas/pendientes/{area}"
+        pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+
+        if not pendientes:
+            st.info("No hay documentos pendientes en esta área.")
+
+        for arc in pendientes:
+            with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
+                ruta_full = f"{carpeta_area}/{arc}"
+                st.write("### Previsualización:")
+                try:
+                    pdf_viewer(ruta_full, width=700)
+                except:
+                    st.error("El visor falló. Usa el botón de abajo para revisar.")
+                    with open(ruta_full, "rb") as f:
+                        st.download_button("📂 Descargar para revisar", f, file_name=arc)
+
+                st.write("---")
+
+                # Pedir contraseña para la firma si existe
+                contra_firma = st.text_input(
+                    "Ingresa la contraseña de la firma (si aplica)", 
+                    type="password", key=f"pw_{arc}"
+                )
+
+                if st.button(f"🖋️ Firmar y Enviar a Almacén", key=f"f_{area}_{arc}"):
+                    # Verificar si hay firma con contraseña para el área
+                    if area in firmas_contrasena:
+                        info_firma = firmas_contrasena[area]
+                        if contra_firma == info_firma["password"]:
+                            if os.path.exists(info_firma["archivo"]):
+                                doc = fitz.open(ruta_full)
+                                pagina = doc[0]
+                                pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename=info_firma["archivo"])
+                                carpeta_firmadas = f"reservas/firmadas/{area}"
+                                os.makedirs(carpeta_firmadas, exist_ok=True)
+                                doc.save(f"{carpeta_firmadas}/{arc}")
+                                doc.close()
+                                os.remove(ruta_full)
+                                st.success("✅ Firmado correctamente y enviado a almacen.")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ No existe la firma '{info_firma['archivo']}'")
+                        else:
+                            st.error("❌ Contraseña incorrecta para la firma.")
+                    else:
+                        st.error("❌ No hay firma configurada para esta área.")
+
+    # ===========================
+    # --- VISTA ALMACÉN ---
+    # ===========================
+    elif rol == "almacen":
+        st.header("📦 Documentos Listos")
+        estado_file = "reservas/firmadas/estado.json"
+        if os.path.exists(estado_file):
+            with open(estado_file, "r") as f:
+                estados = json.load(f)
+        else:
+            estados = {}
+
+        area = st.selectbox("Selecciona el área", areas)
+        carpeta_area = f"reservas/firmadas/{area}"
+        firmados = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+
+        for f in firmados:
+            # Azul = no descargado, Amarillo = descargado
+            color = "💛" if estados.get(f"{area}/{f}", False) else "💙"
+            col_a, col_b = st.columns([3, 1])
+            col_a.markdown(f"{color} {f}")
+            with open(f"{carpeta_area}/{f}", "rb") as file:
+                if col_b.download_button("Descargar", file, file_name=f, key=f"dl_{area}_{f}"):
+                    estados[f"{area}/{f}"] = True  # Marca como descargado
+                    with open(estado_file, "w") as ff:
+                        json.dump(estados, ff)
