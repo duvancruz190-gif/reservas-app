@@ -3,130 +3,102 @@ import os
 import fitz  # PyMuPDF
 import base64
 
-# --- 1. CONFIGURACIÓN E HIGIENE DE CARPETAS ---
+# --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
-# Creamos las carpetas necesarias si no existen
 for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
     os.makedirs(carpeta, exist_ok=True)
 
-# --- 2. BASE DE DATOS DE USUARIOS ---
 usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
     "ingeniero": {"password": "999", "rol": "ingeniero"},
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# --- 3. FUNCIONES DE APOYO ---
+# --- 2. VISOR DE PDF MEJORADO ---
 def mostrar_pdf(ruta_pdf):
-    """Genera un visor de PDF incrustado en la página usando Base64"""
     try:
         with open(ruta_pdf, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
+        
+        # Objeto PDF incrustado con más compatibilidad
+        pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf">'
         st.markdown(pdf_display, unsafe_allow_html=True)
+        
+        # Opción extra por si el navegador no lo soporta
+        st.info("💡 Si no ves el PDF arriba, asegúrate de permitir las cookies de terceros en tu navegador.")
     except Exception as e:
-        st.error(f"No se pudo visualizar el archivo: {e}")
+        st.error(f"Error al abrir: {e}")
 
-# --- 4. LÓGICA DE SESIÓN ---
+# --- 3. LÓGICA DE ACCESO ---
 if "login" not in st.session_state:
     st.session_state.login = False
 
-# --- PANTALLA DE LOGIN ---
 if not st.session_state.login:
-    st.title("🔐 Acceso al Sistema de Reservas")
-    col_login, _ = st.columns([1, 2])
-    with col_login:
-        user_input = st.text_input("Usuario")
-        pass_input = st.text_input("Contraseña", type="password")
-        if st.button("Ingresar", use_container_width=True):
-            if user_input in usuarios and usuarios[user_input]["password"] == pass_input:
-                st.session_state.login = True
-                st.session_state.rol = usuarios[user_input]["rol"]
-                st.session_state.user_name = user_input
-                st.rerun()
-            else:
-                st.error("⚠️ Credenciales incorrectas")
+    st.title("🔐 Acceso al Sistema")
+    u = st.text_input("Usuario")
+    p = st.text_input("Contraseña", type="password")
+    if st.button("Ingresar"):
+        if u in usuarios and usuarios[u]["password"] == p:
+            st.session_state.login = True
+            st.session_state.rol = usuarios[u]["rol"]
+            st.session_state.user_name = u
+            st.rerun()
+        else:
+            st.error("Credenciales incorrectas")
 
-# --- PANTALLA PRINCIPAL (LOGUEADO) ---
 else:
-    # BARRA LATERAL (SIDEBAR) - Aquí está el botón de salir para TODOS
+    # MENÚ LATERAL
     with st.sidebar:
-        st.title("Menú")
-        # Usamos .get() para evitar el error de Attribute si la sesión es vieja
-        nombre_usuario = st.session_state.get('user_name', 'Usuario')
-        rol_usuario = st.session_state.get('rol', 'Invitado').upper()
-        
-        st.write(f"👤 Usuario: **{nombre_usuario}**")
-        st.write(f"🔑 Rol: **{rol_usuario}**")
-        st.write("---")
+        st.title("📂 Menú")
+        st.write(f"👤 **{st.session_state.get('user_name', 'Usuario')}**")
+        st.write(f"🔑 Rol: {st.session_state.get('rol', '').upper()}")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            # Limpiamos todo el estado de la sesión
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
 
-    st.title("📋 Sistema de Gestión de Reservas")
-    rol_actual = st.session_state.get('rol')
+    # --- VISTAS POR ROL ---
+    rol = st.session_state.get('rol')
 
-    # --- FLUJO: USUARIO ---
-    if rol_actual == "usuario":
-        st.header("📤 Nueva Solicitud")
-        archivo = st.file_uploader("Suba el documento de reserva (PDF)", type=["pdf"])
-        if st.button("Enviar al Ingeniero"):
-            if archivo:
-                with open(f"reservas/pendientes/{archivo.name}", "wb") as f:
-                    f.write(archivo.getbuffer())
-                st.success(f"✅ Documento '{archivo.name}' enviado correctamente.")
-            else:
-                st.warning("⚠️ Seleccione un archivo primero.")
+    if rol == "usuario":
+        st.header("📤 Enviar Reserva")
+        arch = st.file_uploader("Subir PDF", type=["pdf"])
+        if st.button("Enviar"):
+            if arch:
+                with open(f"reservas/pendientes/{arch.name}", "wb") as f:
+                    f.write(arch.getbuffer())
+                st.success("Enviado.")
+            else: st.warning("Sube un archivo.")
 
-    # --- FLUJO: INGENIERO ---
-    elif rol_actual == "ingeniero":
-        st.header("✍️ Bandeja de Revisión y Firma")
+    elif rol == "ingeniero":
+        st.header("✍️ Bandeja de Firma")
         pendientes = os.listdir("reservas/pendientes")
-        
         if not pendientes:
-            st.info("No hay documentos pendientes de firma.")
-        else:
-            for arc in pendientes:
-                # Usamos un expansor para organizar la visualización
-                with st.expander(f"📄 Archivo: {arc}"):
-                    ruta_p = f"reservas/pendientes/{arc}"
-                    col_btn1, col_btn2 = st.columns(2)
-                    
-                    if col_btn1.button("👁️ Ver PDF", key=f"v_{arc}"):
-                        mostrar_pdf(ruta_p)
-                    
-                    if col_btn2.button("🖋️ Firmar Documento", key=f"f_{arc}"):
-                        ruta_firma = "reservas/firmas/ingeniero.png"
-                        if os.path.exists(ruta_firma):
-                            try:
-                                doc = fitz.open(ruta_p)
-                                pagina = doc[0]
-                                # Rect(x0, y0, x1, y1) - Ajusta según necesites
-                                rect = fitz.Rect(400, 700, 550, 800)
-                                pagina.insert_image(rect, filename=ruta_firma)
-                                doc.save(f"reservas/firmadas/{arc}")
-                                doc.close()
-                                os.remove(ruta_p)
-                                st.success("✅ Firmado con éxito.")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error al firmar: {e}")
-                        else:
-                            st.error(f"⚠️ No existe la firma en 'reservas/firmas/ingeniero.png'")
+            st.info("No hay archivos.")
+        for arc in pendientes:
+            with st.expander(f"📄 Revisar: {arc}"):
+                col1, col2 = st.columns(2)
+                ruta_full = f"reservas/pendientes/{arc}"
+                
+                if col1.button("👁️ Visualizar", key=f"v_{arc}"):
+                    mostrar_pdf(ruta_full)
+                
+                if col2.button("🖋️ Firmar", key=f"f_{arc}"):
+                    if os.path.exists("reservas/firmas/ingeniero.png"):
+                        doc = fitz.open(ruta_full)
+                        pagina = doc[0]
+                        pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename="reservas/firmas/ingeniero.png")
+                        doc.save(f"reservas/firmadas/{arc}")
+                        doc.close()
+                        os.remove(ruta_full)
+                        st.success("Firmado.")
+                        st.rerun()
+                    else:
+                        st.error("Falta la imagen: reservas/firmas/ingeniero.png")
 
-    # --- FLUJO: ALMACÉN ---
-    elif rol_actual == "almacen":
-        st.header("📦 Reservas Listas para Despacho")
+    elif rol == "almacen":
+        st.header("📦 Despacho")
         firmados = os.listdir("reservas/firmadas")
-        
-        if not firmados:
-            st.info("Aún no hay documentos firmados por el ingeniero.")
-        else:
-            for f_name in firmados:
-                col_a, col_b = st.columns([3, 1])
-                col_a.write(f"✅ {f_name}")
-                with open(f"reservas/firmadas/{f_name}", "rb") as f:
-                    col_b.download_button("Descargar", f, file_name=f_name, key=f"dl_{f_name}")
+        for f in firmados:
+            with open(f"reservas/firmadas/{f}", "rb") as file:
+                st.download_button(f"Descargar {f}", file, file_name=f)
