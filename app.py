@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import fitz  # PyMuPDF
 
-# 1. Crear carpetas si no existen
+# 1. Crear carpetas
 for folder in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
     os.makedirs(folder, exist_ok=True)
 
@@ -13,7 +13,6 @@ usuarios = {
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# 3. Estado de la sesión
 if "login" not in st.session_state:
     st.session_state.login = False
 
@@ -33,9 +32,9 @@ if not st.session_state.login:
 
 # --- PANTALLA PRINCIPAL ---
 else:
-    # ESTO ES LO QUE TE FALTA: La barra lateral para salir
+    # BARRA LATERAL (Esto es lo que te permite salir)
     with st.sidebar:
-        st.write(f"Sessión activa: **{st.session_state.rol.upper()}**")
+        st.header(f"Rol: {st.session_state.rol.upper()}")
         if st.button("Cerrar Sesión"):
             st.session_state.login = False
             st.rerun()
@@ -49,24 +48,33 @@ else:
         if st.button("Enviar"):
             if archivo:
                 with open(f"reservas/pendientes/{archivo.name}", "wb") as f:
-                    f.write(archivo.getbuffer()) # getbuffer es clave para que el archivo no llegue vacío
+                    f.write(archivo.getbuffer())
                 st.success("Enviado al Ingeniero")
 
     elif rol == "ingeniero":
         st.subheader("Documentos por Firmar")
         archivos = os.listdir("reservas/pendientes")
-        if not archivos: st.info("No hay pendientes")
+        if not archivos:
+            st.info("No hay documentos pendientes")
         for arc in archivos:
             col1, col2 = st.columns([3, 1])
             col1.write(arc)
             if col2.button("Firmar", key=arc):
-                # Lógica de firma con PyMuPDF
-                pdf = fitz.open(f"reservas/pendientes/{arc}")
-                # ... (resto de tu lógica de firma)
-                pdf.save(f"reservas/firmadas/{arc}")
-                pdf.close()
-                os.remove(f"reservas/pendientes/{arc}")
-                st.rerun() # Esto hace que el archivo desaparezca de la lista al instante
+                ruta_in = f"reservas/pendientes/{arc}"
+                ruta_out = f"reservas/firmadas/{arc}"
+                ruta_firma = "reservas/firmas/ingeniero.png"
+                if os.path.exists(ruta_firma):
+                    pdf = fitz.open(ruta_in)
+                    pagina = pdf[0]
+                    rect = fitz.Rect(300, 500, 500, 650)
+                    pagina.insert_image(rect, filename=ruta_firma)
+                    pdf.save(ruta_out)
+                    pdf.close()
+                    os.remove(ruta_in)
+                    st.success("Firmado")
+                    st.rerun()
+                else:
+                    st.error("Sube la firma 'ingeniero.png' a la carpeta reservas/firmas")
 
     elif rol == "almacen":
         st.subheader("Descargar Firmados")
