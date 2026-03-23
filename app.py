@@ -2,9 +2,6 @@ import streamlit as st
 import os
 import fitz
 from datetime import datetime
-streamlit
-PyMuPDF
-
 st.title("Sistema de Reservas")
 
 os.makedirs("reservas/pendientes", exist_ok=True)
