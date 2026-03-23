@@ -1,10 +1,8 @@
 import streamlit as st
 import os
-import fitz
+import fitz  # PyMuPDF
 from PIL import Image
-from streamlit_drawable_canvas import st_canvas
 import json
-import numpy as np
 
 # -----------------------------
 # CONFIGURACIÓN
@@ -27,14 +25,16 @@ usuarios = {
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
+# -----------------------------
 # Firmas con contraseña
+# -----------------------------
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
-    # Agrega más firmas por área si quieres
+    # Agrega más áreas y sus firmas aquí
 }
 
 # -----------------------------
-# SESIÓN
+# Sesión
 # -----------------------------
 if "login" not in st.session_state:
     st.session_state.login = False
@@ -105,64 +105,40 @@ else:
                 ruta_full = f"{carpeta_area}/{arc}"
 
                 # --------------------------
-                # Mostrar PDF
+                # Convertir PDF a imagen
                 # --------------------------
                 pdf_doc = fitz.open(ruta_full)
                 pagina = pdf_doc[0]
                 pix = pagina.get_pixmap()
                 pdf_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                st.image(pdf_img, caption="PDF como referencia", use_column_width=True)
+                st.image(pdf_img, caption="PDF de referencia", use_column_width=True)
 
                 # --------------------------
-                # Contraseña y firma
+                # Contraseña de firma
                 # --------------------------
                 if area in firmas_contrasena:
                     info_firma = firmas_contrasena[area]
                     contra_firma = st.text_input("Ingresa la contraseña de la firma", type="password", key=f"pw_{arc}")
 
                     if contra_firma == info_firma["password"]:
-                        st.success("✅ Contraseña correcta. Firma lista para arrastrar.")
+                        st.success("✅ Contraseña correcta. Ajusta la posición de la firma con los sliders.")
 
                         firma_img = Image.open(info_firma["archivo"])
-                        # Convertir firma a array numpy
-                        firma_array = np.array(firma_img)
+                        st.image(firma_img, width=150, caption="Firma para colocar")
 
-                        # --------------------------
-                        # Canvas con PDF de fondo
-                        # --------------------------
-                        canvas_result = st_canvas(
-                            fill_color="rgba(0,0,0,0)",
-                            stroke_width=2,
-                            stroke_color="blue",
-                            background_image=np.array(pdf_img),
-                            width=pix.width,
-                            height=pix.height,
-                            drawing_mode="image",
-                            key=f"canvas_{arc}"
-                        )
-                        st.image(firma_img, width=150, caption="Firma para arrastrar")
+                        # Sliders para posicionar firma
+                        x_pos = st.slider("Posición X", 0, pix.width - 100, 400)
+                        y_pos = st.slider("Posición Y", 0, pix.height - 100, 700)
 
                         if st.button(f"🖋️ Firmar PDF", key=f"f_{arc}"):
-                            if canvas_result.json_data:
-                                for obj in canvas_result.json_data["objects"]:
-                                    if obj["type"] == "image":
-                                        x0 = obj["left"]
-                                        y0 = obj["top"]
-                                        w = obj["width"]
-                                        h = obj["height"]
-                                        scale_x = pagina.rect.width / canvas_result.width
-                                        scale_y = pagina.rect.height / canvas_result.height
-                                        rect = fitz.Rect(
-                                            x0*scale_x, y0*scale_y, (x0+w)*scale_x, (y0+h)*scale_y
-                                        )
-                                        pagina.insert_image(rect, filename=info_firma["archivo"])
-
-                                carpeta_firmadas = f"reservas/firmadas/{area}"
-                                pdf_doc.save(f"{carpeta_firmadas}/{arc}")
-                                pdf_doc.close()
-                                os.remove(ruta_full)
-                                st.success("✅ PDF firmado y enviado a Almacén")
-                                st.rerun()
+                            rect = fitz.Rect(x_pos, y_pos, x_pos + firma_img.width, y_pos + firma_img.height)
+                            pagina.insert_image(rect, filename=info_firma["archivo"])
+                            carpeta_firmadas = f"reservas/firmadas/{area}"
+                            pdf_doc.save(f"{carpeta_firmadas}/{arc}")
+                            pdf_doc.close()
+                            os.remove(ruta_full)
+                            st.success("✅ PDF firmado y enviado a Almacén")
+                            st.rerun()
                     else:
                         if contra_firma:
                             st.error("❌ Contraseña incorrecta")
