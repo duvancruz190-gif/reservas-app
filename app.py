@@ -1,27 +1,43 @@
 import streamlit as st
 import os
 import fitz  # PyMuPDF
-from streamlit_pdf_viewer import pdf_viewer # Nuevo visor profesional
+from streamlit_pdf_viewer import pdf_viewer
+import time
 
-# --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="Gestión de Reservas", layout="wide")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="Eternit - Gestión de Reservas", layout="wide")
 
-for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
-    os.makedirs(carpeta, exist_ok=True)
+# Asegurar que las carpetas existan para evitar errores
+for c in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
+    os.makedirs(c, exist_ok=True)
 
+# --- BASE DE DATOS DE USUARIOS ---
 usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
-    "ingeniero": {"password": "999", "rol": "ingeniero"},
+    
+    "calidad": {
+        "password": "999", 
+        "rol": "ingeniero", 
+        "pass_firma": "calidad123", 
+        "archivo_firma": "reservas/firmas/calidad.jpeg"
+    },
+    
+    "ambiental": {
+        "password": "888", 
+        "rol": "ingeniero", 
+        "pass_firma": "ambiental123", 
+        "archivo_firma": "reservas/firmas/ambiental .jpeg" # Mantiene el espacio detectado en tu GitHub
+    },
+    
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# --- 2. LÓGICA DE SESIÓN ---
 if "login" not in st.session_state:
     st.session_state.login = False
 
 # --- PANTALLA DE LOGIN ---
 if not st.session_state.login:
-    st.title("🔐 Acceso al Sistema")
+    st.title("🔐 Acceso al Sistema Eternit")
     u = st.text_input("Usuario")
     p = st.text_input("Contraseña", type="password")
     if st.button("Ingresar", use_container_width=True):
@@ -36,72 +52,49 @@ if not st.session_state.login:
 else:
     # MENÚ LATERAL
     with st.sidebar:
-        st.title("📂 Menú Principal")
-        st.write(f"👤 Usuario: **{st.session_state.get('user_name', 'Usuario')}**")
-        st.write(f"🔑 Rol: **{st.session_state.get('rol', '').upper()}**")
-        st.write("---")
+        st.title("📂 Menú")
+        st.write(f"👤 Usuario: **{st.session_state.user_name.upper()}**")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.session_state.clear()
             st.rerun()
 
-    st.title("📋 Gestión de Reservas")
-    rol = st.session_state.get('rol')
-
-    # --- VISTA: USUARIO ---
-    if rol == "usuario":
-        st.header("📤 Enviar Nueva Reserva")
-        arch = st.file_uploader("Subir PDF", type=["pdf"])
-        if st.button("Enviar al Ingeniero"):
-            if arch:
-                with open(f"reservas/pendientes/{arch.name}", "wb") as f:
-                    f.write(arch.getbuffer())
-                st.success("✅ Documento enviado.")
-            else:
-                st.warning("Selecciona un archivo.")
-
-    # --- VISTA: INGENIERO ---
-    elif rol == "ingeniero":
-        st.header("✍️ Revisión y Firma")
-        pendientes = os.listdir("reservas/pendientes")
+    # --- VISTA PARA CALIDAD Y AMBIENTAL ---
+    if st.session_state.rol == "ingeniero":
+        st.header(f"✍️ Bandeja de Revisión - {st.session_state.user_name.capitalize()}")
+        pends = [f for f in os.listdir("reservas/pendientes") if f.endswith(".pdf")]
         
-        if not pendientes:
-            st.info("No hay documentos pendientes.")
+        if not pends:
+            st.info("No hay documentos pendientes de firma.")
         
-        for arc in pendientes:
-            with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
-                ruta_full = f"reservas/pendientes/{arc}"
+        for arc in pends:
+            with st.expander(f"📄 Revisar Archivo: {arc}"):
+                ruta_pdf = f"reservas/pendientes/{arc}"
                 
-                # VISOR PROFESIONAL (Evita el bloqueo del navegador)
-                st.write("### Previsualización:")
-                try:
-                    pdf_viewer(ruta_full, width=700)
-                except:
-                    st.error("El visor falló. Usa el botón de abajo para revisar.")
-                    with open(ruta_full, "rb") as f:
-                        st.download_button("📂 Descargar para revisar", f, file_name=arc)
+                # 1. VISOR PROFESIONAL (Soluciona el bloqueo del navegador)
+                pdf_viewer(ruta_pdf, width=800)
                 
                 st.write("---")
-                if st.button(f"🖋️ Firmar y Enviar a Almacén", key=f"f_{arc}"):
-                    ruta_firma = "reservas/firmas/ingeniero.png"
-                    if os.path.exists(ruta_firma):
-                        doc = fitz.open(ruta_full)
-                        pagina = doc[0]
-                        # Colocación de firma (Ajustable)
-                        pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename=ruta_firma)
-                        doc.save(f"reservas/firmadas/{arc}")
-                        doc.close()
-                        os.remove(ruta_full)
-                        st.success("✅ Firmado correctamente.")
-                        st.rerun()
+                # 2. SECCIÓN DE FIRMA SEGURA CON CLAVE
+                clave_f = st.text_input("Introduce tu Clave de Firma", type="password", key=f"f_{arc}")
+                
+                if st.button(f"Firmar y Enviar a Almacén", key=f"b_{arc}"):
+                    datos = usuarios[st.session_state.user_name]
+                    
+                    if clave_f != datos["pass_firma"]:
+                        st.error("❌ Clave de firma incorrecta.")
+                    elif not os.path.exists(datos["archivo_firma"]):
+                        st.error(f"❌ No se encuentra el archivo de firma: {datos['archivo_firma']}")
                     else:
-                        st.error("❌ No existe la firma 'ingeniero.png' en reservas/firmas/")
-
-    # --- VISTA: ALMACÉN ---
-    elif rol == "almacen":
-        st.header("📦 Documentos Listos")
-        firmados = os.listdir("reservas/firmadas")
-        for f in firmados:
-            col_a, col_b = st.columns([3, 1])
-            col_a.write(f"✅ {f}")
-            with open(f"reservas/firmadas/{f}", "rb") as file:
-                col_b.download_button("Descargar", file, file_name=f, key=f"dl_{f}")
+                        try:
+                            doc = fitz.open(ruta_pdf)
+                            # Coordenadas calculadas para la línea "FIRMA 1" de Eternit
+                            rect_firma = fitz.Rect(90, 650, 240, 710) 
+                            doc[0].insert_image(rect_firma, filename=datos["archivo_firma"])
+                            doc.save(f"reservas/firmadas/{arc}")
+                            doc.close()
+                            os.remove(ruta_pdf) # Borrar de pendientes
+                            st.success("✅ Documento firmado con éxito.")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error técnico: {e}")
