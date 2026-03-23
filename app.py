@@ -13,7 +13,8 @@ for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
 
 # --- ÁREAS ---
 areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
-         "Recursos Humanos", "Ambiental", "Salud Ocupacional"]
+         "Recursos Humanos", "Ambiental", "Salud Ocupacional",
+         "Marketing", "Financiera", "Almacén"]
 
 # --- USUARIOS ---
 usuarios = {
@@ -96,11 +97,11 @@ else:
 
                 st.write("---")
                 if st.button(f"🖋️ Firmar y Enviar a Almacén", key=f"f_{area}_{arc}"):
-                    ruta_firma = "reservas/firmas/calidad.jpeg"  # Cambia según firma
+                    # Aquí puedes cambiar la firma según el área
+                    ruta_firma = f"reservas/firmas/{area.lower().replace(' ','_')}.jpeg"
                     if os.path.exists(ruta_firma):
                         doc = fitz.open(ruta_full)
                         pagina = doc[0]
-                        # Ajusta la posición de la firma
                         pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename=ruta_firma)
                         carpeta_firmadas = f"reservas/firmadas/{area}"
                         os.makedirs(carpeta_firmadas, exist_ok=True)
@@ -110,7 +111,7 @@ else:
                         st.success("✅ Firmado correctamente y enviado a almacen.")
                         st.rerun()
                     else:
-                        st.error(f"❌ No existe la firma 'calidad.jpeg' en reservas/firmas/")
+                        st.error(f"❌ No existe la firma '{area.lower().replace(' ','_')}.jpeg' en reservas/firmas/")
 
     # ===========================
     # --- VISTA ALMACÉN ---
