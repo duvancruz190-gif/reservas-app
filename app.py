@@ -6,6 +6,7 @@ import base64
 # --- 1. CONFIGURACIÓN E HIGIENE DE CARPETAS ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
+# Creamos las carpetas necesarias si no existen
 for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
     os.makedirs(carpeta, exist_ok=True)
 
@@ -18,7 +19,7 @@ usuarios = {
 
 # --- 3. FUNCIONES DE APOYO ---
 def mostrar_pdf(ruta_pdf):
-    """Genera un visor de PDF incrustado en la página"""
+    """Genera un visor de PDF incrustado en la página usando Base64"""
     try:
         with open(ruta_pdf, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
@@ -36,33 +37,40 @@ if not st.session_state.login:
     st.title("🔐 Acceso al Sistema de Reservas")
     col_login, _ = st.columns([1, 2])
     with col_login:
-        user = st.text_input("Usuario")
-        passw = st.text_input("Contraseña", type="password")
+        user_input = st.text_input("Usuario")
+        pass_input = st.text_input("Contraseña", type="password")
         if st.button("Ingresar", use_container_width=True):
-            if user in usuarios and usuarios[user]["password"] == passw:
+            if user_input in usuarios and usuarios[user_input]["password"] == pass_input:
                 st.session_state.login = True
-                st.session_state.rol = usuarios[user]["rol"]
-                st.session_state.user_name = user
+                st.session_state.rol = usuarios[user_input]["rol"]
+                st.session_state.user_name = user_input
                 st.rerun()
             else:
-                st.error("Credenciales incorrectas")
+                st.error("⚠️ Credenciales incorrectas")
 
 # --- PANTALLA PRINCIPAL (LOGUEADO) ---
 else:
     # BARRA LATERAL (SIDEBAR) - Aquí está el botón de salir para TODOS
     with st.sidebar:
         st.title("Menú")
-        st.write(f"👤 Usuario: **{st.session_state.user_name}**")
-        st.write(f"🔑 Rol: **{st.session_state.rol.upper()}**")
+        # Usamos .get() para evitar el error de Attribute si la sesión es vieja
+        nombre_usuario = st.session_state.get('user_name', 'Usuario')
+        rol_usuario = st.session_state.get('rol', 'Invitado').upper()
+        
+        st.write(f"👤 Usuario: **{nombre_usuario}**")
+        st.write(f"🔑 Rol: **{rol_usuario}**")
         st.write("---")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            st.session_state.login = False
+            # Limpiamos todo el estado de la sesión
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
             st.rerun()
 
     st.title("📋 Sistema de Gestión de Reservas")
+    rol_actual = st.session_state.get('rol')
 
     # --- FLUJO: USUARIO ---
-    if st.session_state.rol == "usuario":
+    if rol_actual == "usuario":
         st.header("📤 Nueva Solicitud")
         archivo = st.file_uploader("Suba el documento de reserva (PDF)", type=["pdf"])
         if st.button("Enviar al Ingeniero"):
@@ -71,10 +79,10 @@ else:
                     f.write(archivo.getbuffer())
                 st.success(f"✅ Documento '{archivo.name}' enviado correctamente.")
             else:
-                st.warning("Seleccione un archivo primero.")
+                st.warning("⚠️ Seleccione un archivo primero.")
 
     # --- FLUJO: INGENIERO ---
-    elif st.session_state.rol == "ingeniero":
+    elif rol_actual == "ingeniero":
         st.header("✍️ Bandeja de Revisión y Firma")
         pendientes = os.listdir("reservas/pendientes")
         
@@ -82,9 +90,9 @@ else:
             st.info("No hay documentos pendientes de firma.")
         else:
             for arc in pendientes:
+                # Usamos un expansor para organizar la visualización
                 with st.expander(f"📄 Archivo: {arc}"):
                     ruta_p = f"reservas/pendientes/{arc}"
-                    
                     col_btn1, col_btn2 = st.columns(2)
                     
                     if col_btn1.button("👁️ Ver PDF", key=f"v_{arc}"):
@@ -93,21 +101,24 @@ else:
                     if col_btn2.button("🖋️ Firmar Documento", key=f"f_{arc}"):
                         ruta_firma = "reservas/firmas/ingeniero.png"
                         if os.path.exists(ruta_firma):
-                            # Proceso de firma
-                            doc = fitz.open(ruta_p)
-                            pagina = doc[0]
-                            rect = fitz.Rect(400, 700, 550, 800)
-                            pagina.insert_image(rect, filename=ruta_firma)
-                            doc.save(f"reservas/firmadas/{arc}")
-                            doc.close()
-                            os.remove(ruta_p)
-                            st.success("✅ Firmado con éxito.")
-                            st.rerun()
+                            try:
+                                doc = fitz.open(ruta_p)
+                                pagina = doc[0]
+                                # Rect(x0, y0, x1, y1) - Ajusta según necesites
+                                rect = fitz.Rect(400, 700, 550, 800)
+                                pagina.insert_image(rect, filename=ruta_firma)
+                                doc.save(f"reservas/firmadas/{arc}")
+                                doc.close()
+                                os.remove(ruta_p)
+                                st.success("✅ Firmado con éxito.")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error al firmar: {e}")
                         else:
-                            st.error(f"⚠️ Error: No existe la firma en 'reservas/firmas/ingeniero.png'")
+                            st.error(f"⚠️ No existe la firma en 'reservas/firmas/ingeniero.png'")
 
     # --- FLUJO: ALMACÉN ---
-    elif st.session_state.rol == "almacen":
+    elif rol_actual == "almacen":
         st.header("📦 Reservas Listas para Despacho")
         firmados = os.listdir("reservas/firmadas")
         
