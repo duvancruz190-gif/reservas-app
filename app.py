@@ -1,15 +1,16 @@
 import streamlit as st
 import os
-import fitz  # PyMuPDF
+import fitz
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 from streamlit_pdf_viewer import pdf_viewer
 import json
+import numpy as np
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas Interactiva", layout="wide")
 
-# Crear carpetas base y por áreas
+# Crear carpetas
 areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
          "Recursos Humanos", "Ambiental", "Salud Ocupacional",
          "Marketing", "Financiera", "Almacén"]
@@ -30,7 +31,7 @@ usuarios = {
 # Firmas con contraseña
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
-    # Agrega más firmas por área
+    # agregar más firmas por área
 }
 
 # Sesión
@@ -50,7 +51,6 @@ if not st.session_state.login:
             st.rerun()
         else:
             st.error("Credenciales incorrectas")
-
 else:
     # Menú lateral
     with st.sidebar:
@@ -96,7 +96,7 @@ else:
             with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
                 ruta_full = f"{carpeta_area}/{arc}"
 
-                # --- VER PDF COMPLETO ---
+                # --- Ver PDF ---
                 st.write("### Previsualización del PDF")
                 try:
                     pdf_viewer(ruta_full, width=700)
@@ -104,16 +104,14 @@ else:
                     with open(ruta_full, "rb") as f:
                         st.download_button("Descargar PDF", f, file_name=arc)
 
-                # --- SUBIR FIRMA ---
+                # --- Contraseña de firma ---
                 if area in firmas_contrasena:
                     info_firma = firmas_contrasena[area]
-                    st.write(f"Firma asignada: {os.path.basename(info_firma['archivo'])}")
                     contra_firma = st.text_input("Ingresa la contraseña de la firma", type="password", key=f"pw_{arc}")
-                    firma_upload = st.file_uploader("Sube la imagen de la firma para arrastrar", type=["jpeg","png"], key=f"firma_{arc}")
 
-                    if firma_upload:
-                        firma_img = Image.open(firma_upload)
-                        st.write("Arrastra la firma sobre el canvas:")
+                    if contra_firma == info_firma["password"]:
+                        st.success("✅ Contraseña correcta. Firma lista para arrastrar.")
+                        # Abrir PDF y mostrar primera página
                         pdf_doc = fitz.open(ruta_full)
                         pagina = pdf_doc[0]
                         pix = pagina.get_pixmap()
@@ -127,26 +125,22 @@ else:
                             drawing_mode="freedraw",
                             key=f"canvas_{arc}"
                         )
+                        st.image(Image.open(info_firma["archivo"]), width=150)
 
                         if st.button(f"🖋️ Firmar PDF", key=f"f_{arc}"):
-                            if contra_firma != info_firma["password"]:
-                                st.error("❌ Contraseña incorrecta")
-                            else:
-                                # Aplicar firma en PDF según posición del canvas
-                                if canvas_result.json_data:
-                                    objects = canvas_result.json_data["objects"]
-                                    for obj in objects:
-                                        if obj["type"] == "image":
-                                            x0 = obj["left"]
-                                            y0 = obj["top"]
-                                            w = obj["width"]
-                                            h = obj["height"]
-                                            scale_x = pagina.rect.width / canvas_result.width
-                                            scale_y = pagina.rect.height / canvas_result.height
-                                            rect = fitz.Rect(
-                                                x0*scale_x, y0*scale_y, (x0+w)*scale_x, (y0+h)*scale_y
-                                            )
-                                            pagina.insert_image(rect, filename=info_firma["archivo"])
+                            if canvas_result.json_data:
+                                for obj in canvas_result.json_data["objects"]:
+                                    if obj["type"] == "image":
+                                        x0 = obj["left"]
+                                        y0 = obj["top"]
+                                        w = obj["width"]
+                                        h = obj["height"]
+                                        scale_x = pagina.rect.width / canvas_result.width
+                                        scale_y = pagina.rect.height / canvas_result.height
+                                        rect = fitz.Rect(
+                                            x0*scale_x, y0*scale_y, (x0+w)*scale_x, (y0+h)*scale_y
+                                        )
+                                        pagina.insert_image(rect, filename=info_firma["archivo"])
 
                                 carpeta_firmadas = f"reservas/firmadas/{area}"
                                 pdf_doc.save(f"{carpeta_firmadas}/{arc}")
@@ -154,6 +148,9 @@ else:
                                 os.remove(ruta_full)
                                 st.success("✅ PDF firmado y enviado a Almacén")
                                 st.rerun()
+                    else:
+                        if contra_firma:
+                            st.error("❌ Contraseña incorrecta")
 
     # ===========================
     # --- VISTA ALMACÉN ---
