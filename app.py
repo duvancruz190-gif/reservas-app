@@ -1,16 +1,16 @@
 import streamlit as st
 import os
 import fitz  # PyMuPDF
-from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import numpy as np
+from streamlit_drawable_canvas import st_canvas
+from streamlit_pdf_viewer import pdf_viewer
 import json
-from streamlit_pdf_viewer import pdf_viewer  # opcional para ver PDF
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas Interactiva", layout="wide")
 
-# Crear carpetas
+# Crear carpetas base
 for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
     os.makedirs(carpeta, exist_ok=True)
 
@@ -29,6 +29,7 @@ usuarios = {
 # Firmas con contraseña
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
+    # Agrega más firmas aquí por área si quieres
 }
 
 # Sesión
@@ -48,6 +49,7 @@ if not st.session_state.login:
             st.rerun()
         else:
             st.error("Credenciales incorrectas")
+
 else:
     # Menú lateral
     with st.sidebar:
@@ -95,24 +97,23 @@ else:
                 ruta_full = f"{carpeta_area}/{arc}"
 
                 # --- VER PDF COMPLETO ---
-                st.write("### Previsualización del PDF:")
+                st.write("### Previsualización del PDF")
                 try:
                     pdf_viewer(ruta_full, width=700)
                 except:
                     with open(ruta_full, "rb") as f:
                         st.download_button("Descargar PDF", f, file_name=arc)
 
-                st.write("---")
-                st.write("### Arrastra la firma sobre la primera página:")
-
-                # Abrir PDF y convertir primera página a imagen
+                # --- FIRMA ARRASTRABLE SOBRE PRIMERA PÁGINA ---
                 pdf = fitz.open(ruta_full)
                 pagina = pdf[0]
                 pix = pagina.get_pixmap()
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                img_array = np.array(img)  # necesario para st_canvas
+                img_array = np.array(img)
 
-                # Canvas para colocar firma
+                st.write("### Arrastra la firma sobre la primera página:")
+
+                # Canvas vacío con la imagen de fondo
                 canvas_result = st_canvas(
                     fill_color="rgba(0,0,0,0)",
                     stroke_width=2,
@@ -121,7 +122,7 @@ else:
                     update_streamlit=True,
                     height=pix.height,
                     width=pix.width,
-                    drawing_mode="image",
+                    drawing_mode="freedraw",  # permite arrastrar imágenes
                 )
 
                 # Seleccionar firma y contraseña
@@ -143,16 +144,15 @@ else:
                                     if obj["type"] == "image":
                                         x0 = obj["left"]
                                         y0 = obj["top"]
-                                        ancho = obj["width"]
-                                        alto = obj["height"]
-                                        # Escalar coordenadas a PDF real
+                                        w = obj["width"]
+                                        h = obj["height"]
                                         scale_x = pagina.rect.width / canvas_result.width
                                         scale_y = pagina.rect.height / canvas_result.height
                                         rect = fitz.Rect(
                                             x0*scale_x,
                                             y0*scale_y,
-                                            (x0+ancho)*scale_x,
-                                            (y0+alto)*scale_y
+                                            (x0+w)*scale_x,
+                                            (y0+h)*scale_y
                                         )
                                         pagina.insert_image(rect, filename=info_firma["archivo"])
 
