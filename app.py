@@ -23,6 +23,13 @@ usuarios = {
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
+# --- FIRMAS CON CONTRASEÑA ---
+firmas_contrasena = {
+    "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
+    # Puedes agregar más áreas con su firma y contraseña:
+    # "Calidad": {"archivo": "reservas/firmas/calidad.jpeg", "password": "5678"},
+}
+
 # --- SESIÓN ---
 if "login" not in st.session_state:
     st.session_state.login = False
@@ -96,22 +103,35 @@ else:
                         st.download_button("📂 Descargar para revisar", f, file_name=arc)
 
                 st.write("---")
+
+                # Pedir contraseña para la firma si existe
+                contra_firma = st.text_input(
+                    "Ingresa la contraseña de la firma (si aplica)", 
+                    type="password", key=f"pw_{arc}"
+                )
+
                 if st.button(f"🖋️ Firmar y Enviar a Almacén", key=f"f_{area}_{arc}"):
-                    # Aquí puedes cambiar la firma según el área
-                    ruta_firma = f"reservas/firmas/{area.lower().replace(' ','_')}.jpeg"
-                    if os.path.exists(ruta_firma):
-                        doc = fitz.open(ruta_full)
-                        pagina = doc[0]
-                        pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename=ruta_firma)
-                        carpeta_firmadas = f"reservas/firmadas/{area}"
-                        os.makedirs(carpeta_firmadas, exist_ok=True)
-                        doc.save(f"{carpeta_firmadas}/{arc}")
-                        doc.close()
-                        os.remove(ruta_full)
-                        st.success("✅ Firmado correctamente y enviado a almacen.")
-                        st.rerun()
+                    # Verificar si hay firma con contraseña para el área
+                    if area in firmas_contrasena:
+                        info_firma = firmas_contrasena[area]
+                        if contra_firma == info_firma["password"]:
+                            if os.path.exists(info_firma["archivo"]):
+                                doc = fitz.open(ruta_full)
+                                pagina = doc[0]
+                                pagina.insert_image(fitz.Rect(400, 700, 550, 800), filename=info_firma["archivo"])
+                                carpeta_firmadas = f"reservas/firmadas/{area}"
+                                os.makedirs(carpeta_firmadas, exist_ok=True)
+                                doc.save(f"{carpeta_firmadas}/{arc}")
+                                doc.close()
+                                os.remove(ruta_full)
+                                st.success("✅ Firmado correctamente y enviado a almacen.")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ No existe la firma '{info_firma['archivo']}'")
+                        else:
+                            st.error("❌ Contraseña incorrecta para la firma.")
                     else:
-                        st.error(f"❌ No existe la firma '{area.lower().replace(' ','_')}.jpeg' en reservas/firmas/")
+                        st.error("❌ No hay firma configurada para esta área.")
 
     # ===========================
     # --- VISTA ALMACÉN ---
