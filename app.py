@@ -3,38 +3,38 @@ import os
 import fitz  # PyMuPDF
 from PIL import Image
 import json
+import matplotlib.pyplot as plt
 
 # -----------------------------
 # CONFIGURACIÓN
 # -----------------------------
-st.set_page_config(page_title="Gestión de Reservas Interactiva", layout="wide")
+st.set_page_config(page_title="Gestión de Reservas PRO", layout="wide")
 
 areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
          "Recursos Humanos", "Ambiental", "Salud Ocupacional",
          "Marketing", "Financiera", "Almacén"]
 
+# Crear carpetas
 for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas"]:
     os.makedirs(carpeta, exist_ok=True)
 for area in areas:
     os.makedirs(f"reservas/pendientes/{area}", exist_ok=True)
     os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
 
+# Usuarios
 usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
     "ingeniero": {"password": "999", "rol": "ingeniero"},
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# -----------------------------
-# Firmas con contraseña
-# -----------------------------
+# Firma con contraseña
 firmas_contrasena = {
-    "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
-    # Agrega más áreas y sus firmas aquí
+    "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"}
 }
 
 # -----------------------------
-# Sesión
+# SESIÓN
 # -----------------------------
 if "login" not in st.session_state:
     st.session_state.login = False
@@ -46,7 +46,7 @@ if not st.session_state.login:
     st.title("🔐 Acceso al Sistema")
     u = st.text_input("Usuario")
     p = st.text_input("Contraseña", type="password")
-    if st.button("Ingresar", use_container_width=True):
+    if st.button("Ingresar"):
         if u in usuarios and usuarios[u]["password"] == p:
             st.session_state.login = True
             st.session_state.rol = usuarios[u]["rol"]
@@ -56,115 +56,130 @@ if not st.session_state.login:
             st.error("Credenciales incorrectas")
 
 # -----------------------------
-# APP PRINCIPAL
+# APP
 # -----------------------------
 else:
-    # Menú lateral
     with st.sidebar:
-        st.title("📂 Menú Principal")
-        st.write(f"👤 Usuario: **{st.session_state.get('user_name', 'Usuario')}**")
-        st.write(f"🔑 Rol: **{st.session_state.get('rol', '').upper()}**")
-        st.write("---")
-        if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+        st.title("📂 Menú")
+        st.write(f"👤 {st.session_state.user_name}")
+        st.write(f"🔑 {st.session_state.rol.upper()}")
+        if st.button("Cerrar sesión"):
+            st.session_state.clear()
             st.rerun()
 
-    rol = st.session_state.get('rol')
+    rol = st.session_state.rol
 
     # ===========================
     # USUARIO
     # ===========================
     if rol == "usuario":
-        st.header("📤 Enviar Nueva Reserva")
-        area = st.selectbox("Selecciona el área", areas)
-        arch = st.file_uploader("Subir PDF", type=["pdf"])
-        if st.button("Enviar al Ingeniero"):
-            if arch:
-                carpeta_area = f"reservas/pendientes/{area}"
-                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
-                    f.write(arch.getbuffer())
-                st.success(f"✅ Documento enviado a {area}.")
+        st.header("📤 Subir PDF")
+        area = st.selectbox("Área", areas)
+        archivo = st.file_uploader("PDF", type=["pdf"])
+
+        if st.button("Enviar"):
+            if archivo:
+                with open(f"reservas/pendientes/{area}/{archivo.name}", "wb") as f:
+                    f.write(archivo.getbuffer())
+                st.success("✅ Enviado")
             else:
-                st.warning("Selecciona un archivo.")
+                st.warning("Sube un archivo")
 
     # ===========================
     # INGENIERO
     # ===========================
     elif rol == "ingeniero":
-        st.header("✍️ Revisión y Firma Interactiva")
-        area = st.selectbox("Selecciona el área a revisar", areas)
-        carpeta_area = f"reservas/pendientes/{area}"
-        pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+        st.header("✍️ Firmar Documentos")
 
-        if not pendientes:
-            st.info("No hay documentos pendientes en esta área.")
+        area = st.selectbox("Área", areas)
+        carpeta = f"reservas/pendientes/{area}"
+        archivos = os.listdir(carpeta)
 
-        for arc in pendientes:
-            with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
-                ruta_full = f"{carpeta_area}/{arc}"
+        if not archivos:
+            st.info("Sin documentos")
 
-                # --------------------------
-                # Convertir PDF a imagen
-                # --------------------------
-                pdf_doc = fitz.open(ruta_full)
-                pagina = pdf_doc[0]
+        for archivo in archivos:
+            with st.expander(f"📄 {archivo}"):
+
+                ruta = f"{carpeta}/{archivo}"
+
+                pdf = fitz.open(ruta)
+                pagina = pdf[0]
                 pix = pagina.get_pixmap()
+
                 pdf_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                st.image(pdf_img, caption="PDF de referencia", use_column_width=True)
 
-                # --------------------------
-                # Contraseña de firma
-                # --------------------------
+                # Contraseña
                 if area in firmas_contrasena:
-                    info_firma = firmas_contrasena[area]
-                    contra_firma = st.text_input("Ingresa la contraseña de la firma", type="password", key=f"pw_{arc}")
+                    info = firmas_contrasena[area]
+                    pw = st.text_input("Contraseña firma", type="password", key=archivo)
 
-                    if contra_firma == info_firma["password"]:
-                        st.success("✅ Contraseña correcta. Ajusta la posición de la firma con los sliders.")
+                    if pw == info["password"]:
+                        st.success("✅ Correcta")
 
-                        firma_img = Image.open(info_firma["archivo"])
-                        st.image(firma_img, width=150, caption="Firma para colocar")
+                        firma = Image.open(info["archivo"])
 
-                        # Sliders para posicionar firma
-                        x_pos = st.slider("Posición X", 0, pix.width - 100, 400)
-                        y_pos = st.slider("Posición Y", 0, pix.height - 100, 700)
+                        # Sliders
+                        x = st.slider("X", 0, pix.width - 150, 200, key=f"x_{archivo}")
+                        y = st.slider("Y", 0, pix.height - 150, 400, key=f"y_{archivo}")
 
-                        if st.button(f"🖋️ Firmar PDF", key=f"f_{arc}"):
-                            rect = fitz.Rect(x_pos, y_pos, x_pos + firma_img.width, y_pos + firma_img.height)
-                            pagina.insert_image(rect, filename=info_firma["archivo"])
-                            carpeta_firmadas = f"reservas/firmadas/{area}"
-                            pdf_doc.save(f"{carpeta_firmadas}/{arc}")
-                            pdf_doc.close()
-                            os.remove(ruta_full)
-                            st.success("✅ PDF firmado y enviado a Almacén")
+                        # -------- VISUAL --------
+                        fig, ax = plt.subplots()
+                        ax.imshow(pdf_img)
+
+                        ax.imshow(firma, extent=(
+                            x,
+                            x + 150,
+                            y + 80,
+                            y
+                        ))
+
+                        ax.axis("off")
+                        st.pyplot(fig)
+
+                        # -------- FIRMAR --------
+                        if st.button("Firmar", key=f"btn_{archivo}"):
+
+                            rect = fitz.Rect(x, y, x + 150, y + 80)
+                            pagina.insert_image(rect, filename=info["archivo"])
+
+                            destino = f"reservas/firmadas/{area}/{archivo}"
+                            pdf.save(destino)
+                            pdf.close()
+
+                            os.remove(ruta)
+
+                            st.success("✅ Firmado y enviado a almacén")
                             st.rerun()
-                    else:
-                        if contra_firma:
-                            st.error("❌ Contraseña incorrecta")
+
+                    elif pw:
+                        st.error("❌ Incorrecta")
 
     # ===========================
     # ALMACÉN
     # ===========================
     elif rol == "almacen":
-        st.header("📦 Documentos Listos")
-        estado_file = "reservas/firmadas/estado.json"
-        if os.path.exists(estado_file):
-            with open(estado_file, "r") as f:
-                estados = json.load(f)
+        st.header("📦 Almacén")
+
+        estado_path = "reservas/firmadas/estado.json"
+
+        if os.path.exists(estado_path):
+            estados = json.load(open(estado_path))
         else:
             estados = {}
 
-        area = st.selectbox("Selecciona el área", areas)
-        carpeta_area = f"reservas/firmadas/{area}"
-        firmados = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+        area = st.selectbox("Área", areas)
+        carpeta = f"reservas/firmadas/{area}"
+        archivos = os.listdir(carpeta)
 
-        for f in firmados:
-            color = "💛" if estados.get(f"{area}/{f}", False) else "💙"
-            col_a, col_b = st.columns([3,1])
-            col_a.markdown(f"{color} {f}")
-            with open(f"{carpeta_area}/{f}", "rb") as file:
-                if col_b.download_button("Descargar", file, file_name=f, key=f"dl_{area}_{f}"):
-                    estados[f"{area}/{f}"] = True
-                    with open(estado_file, "w") as ff:
-                        json.dump(estados, ff)
+        for archivo in archivos:
+            key = f"{area}/{archivo}"
+            color = "💛" if estados.get(key) else "💙"
+
+            col1, col2 = st.columns([3,1])
+            col1.write(f"{color} {archivo}")
+
+            with open(f"{carpeta}/{archivo}", "rb") as f:
+                if col2.download_button("Descargar", f, file_name=archivo):
+                    estados[key] = True
+                    json.dump(estados, open(estado_path, "w"))
