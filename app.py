@@ -131,16 +131,18 @@ else:
                                     ref = coincidencias[0]
 
                                     x_centro = (ref.x0 + ref.x1) / 2
-                                    y_texto = ref.y0
 
-                                    ancho_firma = (ref.x1 - ref.x0) * 3
-                                    alto_firma = ancho_firma * 0.4
+                                    # 🔥 AJUSTE FINO PARA LÍNEA
+                                    y_linea_real = ref.y0 - 25
+
+                                    ancho_firma = 220
+                                    alto_firma = 80
 
                                     rect_firma = fitz.Rect(
                                         x_centro - ancho_firma / 2,
-                                        y_texto - alto_firma - 10,
+                                        y_linea_real - alto_firma,
                                         x_centro + ancho_firma / 2,
-                                        y_texto - 10
+                                        y_linea_real
                                     )
 
                                 else:
