@@ -3,7 +3,9 @@ import os
 import fitz  # PyMuPDF
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
+import numpy as np
 import json
+from streamlit_pdf_viewer import pdf_viewer  # opcional para ver PDF
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas Interactiva", layout="wide")
@@ -92,19 +94,30 @@ else:
             with st.expander(f"📄 Revisar Archivo: {arc}", expanded=False):
                 ruta_full = f"{carpeta_area}/{arc}"
 
+                # --- VER PDF COMPLETO ---
+                st.write("### Previsualización del PDF:")
+                try:
+                    pdf_viewer(ruta_full, width=700)
+                except:
+                    with open(ruta_full, "rb") as f:
+                        st.download_button("Descargar PDF", f, file_name=arc)
+
+                st.write("---")
+                st.write("### Arrastra la firma sobre la primera página:")
+
                 # Abrir PDF y convertir primera página a imagen
                 pdf = fitz.open(ruta_full)
                 pagina = pdf[0]
                 pix = pagina.get_pixmap()
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                img_array = np.array(img)  # necesario para st_canvas
 
-                st.write("### Arrastra la firma sobre la página:")
-                # Mostrar canvas con PDF
+                # Canvas para colocar firma
                 canvas_result = st_canvas(
                     fill_color="rgba(0,0,0,0)",
                     stroke_width=2,
                     stroke_color="blue",
-                    background_image=img,
+                    background_image=img_array,
                     update_streamlit=True,
                     height=pix.height,
                     width=pix.width,
