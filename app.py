@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import fitz  # PyMuPDF
 from PIL import Image
-import numpy as np
 from streamlit_drawable_canvas import st_canvas
 from streamlit_pdf_viewer import pdf_viewer
 import json
@@ -29,7 +28,7 @@ usuarios = {
 # Firmas con contraseña
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
-    # Agrega más firmas aquí por área si quieres
+    # Agrega más firmas aquí por área
 }
 
 # Sesión
@@ -104,25 +103,23 @@ else:
                     with open(ruta_full, "rb") as f:
                         st.download_button("Descargar PDF", f, file_name=arc)
 
-                # --- FIRMA ARRASTRABLE SOBRE PRIMERA PÁGINA ---
+                # --- ARRRASTRAR FIRMA SOBRE PRIMERA PÁGINA ---
                 pdf = fitz.open(ruta_full)
                 pagina = pdf[0]
                 pix = pagina.get_pixmap()
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                img_array = np.array(img)
 
-                st.write("### Arrastra la firma sobre la primera página:")
+                st.write("### Canvas para arrastrar firma")
 
-                # Canvas vacío con la imagen de fondo
                 canvas_result = st_canvas(
                     fill_color="rgba(0,0,0,0)",
                     stroke_width=2,
                     stroke_color="blue",
-                    background_image=img_array,
-                    update_streamlit=True,
                     height=pix.height,
                     width=pix.width,
-                    drawing_mode="freedraw",  # permite arrastrar imágenes
+                    background_color="white",  # canvas vacío
+                    drawing_mode="freedraw",  # permite arrastrar
+                    key=f"canvas_{arc}"
                 )
 
                 # Seleccionar firma y contraseña
@@ -137,7 +134,7 @@ else:
                         elif not os.path.exists(info_firma["archivo"]):
                             st.error(f"❌ No se encuentra la firma {info_firma['archivo']}")
                         else:
-                            # Obtener posición de la firma del canvas
+                            # Insertar la firma en PDF según posición del canvas
                             if canvas_result.json_data:
                                 objects = canvas_result.json_data["objects"]
                                 for obj in objects:
@@ -149,10 +146,7 @@ else:
                                         scale_x = pagina.rect.width / canvas_result.width
                                         scale_y = pagina.rect.height / canvas_result.height
                                         rect = fitz.Rect(
-                                            x0*scale_x,
-                                            y0*scale_y,
-                                            (x0+w)*scale_x,
-                                            (y0+h)*scale_y
+                                            x0*scale_x, y0*scale_y, (x0+w)*scale_x, (y0+h)*scale_y
                                         )
                                         pagina.insert_image(rect, filename=info_firma["archivo"])
 
