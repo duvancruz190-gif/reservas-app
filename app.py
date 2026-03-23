@@ -3,161 +3,148 @@ import os
 import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
 import time
-import json
 
-# --- 1. CONFIGURACIÓN ESTRUCTURAL ---
-st.set_page_config(page_title="Gestión de Reservas Digital", layout="wide")
+# --- 1. CONFIGURACIÓN DE RUTAS SEGURAS ---
+st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
-# Rutas Base (Uso de rutas absolutas para evitar el "Oh no")
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PATH_PENDIENTES = os.path.join(BASE_DIR, "reservas", "pendientes")
-PATH_FIRMADOS = os.path.join(BASE_DIR, "reservas", "firmadas")
-PATH_FIRMAS = os.path.join(BASE_DIR, "reservas", "firmas")
-PATH_TEMP = os.path.join(BASE_DIR, "reservas", "temp")
+# Obtener la ruta del directorio donde está este archivo .py
+DIRECTORIO_RAIZ = os.path.dirname(os.path.abspath(__file__))
 
-# Áreas del sistema
-AREAS = ["Producción", "Calidad", "Mantenimiento", "Logística", "Almacén"]
+def obtener_ruta(*args):
+    """Crea una ruta absoluta segura"""
+    return os.path.join(DIRECTORIO_RAIZ, *args)
 
-# Crear carpetas si no existen
-for area in AREAS:
-    os.makedirs(os.path.join(PATH_PENDIENTES, area), exist_ok=True)
-    os.makedirs(os.path.join(PATH_FIRMADOS, area), exist_ok=True)
-os.makedirs(PATH_FIRMAS, exist_ok=True)
-os.makedirs(PATH_TEMP, exist_ok=True)
+# Crear estructura de carpetas automáticamente
+AREAS = ["Producción", "Calidad", "Mantenimiento", "Logística"]
+carpetas_necesarias = [
+    ["reservas", "pendientes"],
+    ["reservas", "firmadas"],
+    ["reservas", "firmas"],
+    ["reservas", "temp"]
+]
 
-# --- 2. CONFIGURACIÓN DE FIRMAS Y USUARIOS ---
+for base in carpetas_necesarias:
+    for area in AREAS:
+        os.makedirs(obtener_ruta(*base, area), exist_ok=True)
+    os.makedirs(obtener_ruta(*base), exist_ok=True)
+
+# --- 2. CONFIGURACIÓN DE USUARIOS Y FIRMAS ---
 USUARIOS = {
     "usuario": {"pw": "123", "rol": "usuario"},
     "ingeniero": {"pw": "999", "rol": "ingeniero"},
     "almacen": {"pw": "000", "rol": "almacen"}
 }
 
-FIRMAS_DB = {
-    "Producción": {
-        "archivo": os.path.join(PATH_FIRMAS, "carlos_alfonso.jpeg"),
-        "clave": "1234"
-    }
-}
+# Configuración específica para tu archivo
+FIRMA_CARLOS = obtener_ruta("reservas", "firmas", "carlos_alfonso.jpeg")
+CLAVE_CARLOS = "1234"
 
-# --- 3. FUNCIONES TÉCNICAS ---
-def firmar_documento(ruta_in, ruta_out, ruta_img):
+# --- 3. LÓGICA DE FIRMA ---
+def procesar_firma(ruta_entrada, ruta_salida, ruta_imagen):
     try:
-        doc = fitz.open(ruta_in)
-        page = doc[0] # Primera página
-        # Rectángulo: (x0, y0, x1, y1) -> Ajustado para estar sobre la línea FIRMA 1
-        # x: 220-380 (Centro), y: 620-710 (Sobre la línea)
+        if not os.path.exists(ruta_imagen):
+            return False, f"No se encontró la firma en {ruta_imagen}"
+        
+        doc = fitz.open(ruta_entrada)
+        page = doc[0]
+        # Coordenadas ajustadas para estar SOBRE la línea de 'FIRMA 1'
         rect = fitz.Rect(220, 620, 380, 710)
-        page.insert_image(rect, filename=ruta_img)
-        doc.save(ruta_out)
+        page.insert_image(rect, filename=ruta_imagen)
+        doc.save(ruta_salida)
         doc.close()
-        return True
+        return True, "OK"
     except Exception as e:
-        st.error(f"Error técnico al estampar firma: {e}")
-        return False
+        return False, str(e)
 
-# --- 4. GESTIÓN DE SESIÓN ---
-if "autenticado" not in st.session_state: st.session_state.autenticado = False
-if "rol" not in st.session_state: st.session_state.rol = None
-if "preview_file" not in st.session_state: st.session_state.preview_file = None
+# --- 4. ESTADO DE SESIÓN ---
+if "auth" not in st.session_state: st.session_state.auth = False
+if "prev_pdf" not in st.session_state: st.session_state.prev_pdf = None
 
-# --- 5. INTERFAZ DE LOGIN ---
-if not st.session_state.autenticado:
+# --- 5. INTERFAZ ---
+if not st.session_state.auth:
     st.title("🔐 Acceso al Sistema")
     u = st.text_input("Usuario")
     p = st.text_input("Contraseña", type="password")
-    if st.button("Ingresar", use_container_width=True):
+    if st.button("Entrar", use_container_width=True):
         if u in USUARIOS and USUARIOS[u]["pw"] == p:
-            st.session_state.autenticado = True
+            st.session_state.auth = True
             st.session_state.rol = USUARIOS[u]["rol"]
             st.session_state.user = u
             st.rerun()
         else:
             st.error("Credenciales incorrectas")
-
 else:
-    # MENÚ LATERAL
     with st.sidebar:
-        st.write(f"👤 Usuario: **{st.session_state.user}**")
+        st.write(f"👤 **{st.session_state.user.upper()}**")
         if st.button("Cerrar Sesión"):
-            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.session_state.auth = False
             st.rerun()
 
-    # ==========================================
-    # VISTA USUARIO: SUBIR DOCUMENTOS
-    # ==========================================
-    if st.session_state.rol == "usuario":
-        st.header("📤 Enviar Reserva para Firma")
-        area_dest = st.selectbox("Área de destino", AREAS)
-        file = st.file_uploader("Subir archivo PDF", type="pdf")
-        if st.button("Enviar al Ingeniero") and file:
-            dest = os.path.join(PATH_PENDIENTES, area_dest, file.name)
-            with open(dest, "wb") as f:
-                f.write(file.getbuffer())
-            st.success(f"✅ Enviado a {area_dest}")
+    # --- VISTA INGENIERO ---
+    if st.session_state.rol == "ingeniero":
+        st.header("✍️ Revisión y Firma de Reservas")
+        area_actual = st.selectbox("Selecciona Área", AREAS)
+        path_p = obtener_ruta("reservas", "pendientes", area_actual)
+        
+        archivos = [f for f in os.listdir(path_p) if f.lower().endswith(".pdf")]
+        
+        if not archivos:
+            st.info(f"No hay PDFs pendientes en {area_actual}")
 
-    # ==========================================
-    # VISTA INGENIERO: VISTA PREVIA Y FIRMA
-    # ==========================================
-    elif st.session_state.rol == "ingeniero":
-        st.header("✍️ Revisión y Firma (Ingeniería)")
-        area_ing = st.selectbox("Área a revisar", AREAS)
-        ruta_p = os.path.join(PATH_PENDIENTES, area_ing)
-        pendientes = [f for f in os.listdir(ruta_p) if f.endswith(".pdf")]
-
-        if not pendientes:
-            st.info(f"No hay pendientes en {area_ing}")
-
-        for arc in pendientes:
-            with st.expander(f"📄 Reserva: {arc}"):
-                full_orig = os.path.join(ruta_p, arc)
-                c1, c2 = st.columns(2)
+        for arc in archivos:
+            with st.expander(f"📄 Archivo: {arc}"):
+                ruta_full_orig = os.path.join(path_p, arc)
+                col1, col2 = st.columns(2)
                 
-                with c1:
-                    st.write("**Documento Original:**")
-                    if os.path.exists(full_orig):
-                        pdf_viewer(full_orig, width=400)
+                with col1:
+                    st.write("**Original:**")
+                    if os.path.exists(ruta_full_orig):
+                        pdf_viewer(ruta_full_orig, width=350)
                 
-                with c2:
-                    st.write("**Validar Firma:**")
-                    pass_f = st.text_input("Clave de Firma", type="password", key=f"pw_{arc}")
-                    if st.button("🔍 Generar Vista Previa", key=f"btn_v_{arc}"):
-                        if area_ing in FIRMAS_DB:
-                            f_info = FIRMAS_DB[area_ing]
-                            if pass_f == f_info["clave"]:
-                                if os.path.exists(f_info["archivo"]):
-                                    tmp_path = os.path.join(PATH_TEMP, f"PRE_{arc}")
-                                    if firmar_documento(full_orig, tmp_path, f_info["archivo"]):
-                                        st.session_state.preview_file = tmp_path
-                                        st.success("Vista previa lista abajo")
-                                else: st.error(f"Firma no encontrada en: {f_info['archivo']}")
-                            else: st.error("Clave de firma incorrecta")
-                        else: st.error("Área sin firma configurada")
+                with col2:
+                    st.write("**Validar:**")
+                    clave_f = st.text_input("Clave de Firma", type="password", key=f"f_{arc}")
+                    if st.button("🔍 Ver Vista Previa", key=f"v_{arc}"):
+                        if clave_f == CLAVE_CARLOS:
+                            tmp_path = obtener_ruta("reservas", "temp", f"PRE_{arc}")
+                            exito, msg = procesar_firma(ruta_full_orig, tmp_path, FIRMA_CARLOS)
+                            if exito:
+                                st.session_state.prev_pdf = tmp_path
+                                st.success("Vista previa generada correctamente.")
+                            else:
+                                st.error(f"Error: {msg}")
+                        else:
+                            st.error("Clave de firma incorrecta.")
 
-                # Mostrar Previsualización si se generó para este archivo
-                if st.session_state.preview_file and f"PRE_{arc}" in st.session_state.preview_file:
+                if st.session_state.prev_pdf and f"PRE_{arc}" in st.session_state.prev_pdf:
                     st.divider()
-                    st.subheader("🔍 REVISIÓN DE POSICIÓN DE FIRMA")
-                    pdf_viewer(st.session_state.preview_file, width=700)
-                    if st.button("🚀 CONFIRMAR Y ENVIAR ALMACÉN", key=f"conf_{arc}"):
-                        final_path = os.path.join(PATH_FIRMADOS, area_ing, arc)
-                        os.rename(st.session_state.preview_file, final_path)
-                        os.remove(full_orig)
-                        st.session_state.preview_file = None
-                        st.success("¡Documento enviado exitosamente!")
+                    st.subheader("🔍 REVISIÓN DE FIRMA")
+                    pdf_viewer(st.session_state.prev_pdf, width=700)
+                    if st.button("🚀 CONFIRMAR Y ENVIAR", key=f"c_{arc}"):
+                        ruta_final = obtener_ruta("reservas", "firmadas", area_actual, arc)
+                        os.rename(st.session_state.prev_pdf, ruta_final)
+                        os.remove(ruta_full_orig)
+                        st.session_state.prev_pdf = None
+                        st.success("¡Documento enviado!")
                         time.sleep(1)
                         st.rerun()
 
-    # ==========================================
-    # VISTA ALMACÉN: DESCARGA
-    # ==========================================
+    # --- VISTA USUARIO (SUBIR) ---
+    elif st.session_state.rol == "usuario":
+        st.header("📤 Subir Nueva Reserva")
+        destino = st.selectbox("Área", AREAS)
+        up = st.file_uploader("PDF", type="pdf")
+        if st.button("Enviar") and up:
+            with open(obtener_ruta("reservas", "pendientes", destino, up.name), "wb") as f:
+                f.write(up.getbuffer())
+            st.success("Archivo subido.")
+
+    # --- VISTA ALMACÉN (DESCARGAR) ---
     elif st.session_state.rol == "almacen":
-        st.header("📦 Reservas Listas (Almacén)")
+        st.header("📦 Reservas Firmadas")
         area_al = st.selectbox("Área", AREAS)
-        ruta_f = os.path.join(PATH_FIRMADOS, area_al)
-        firmados = [f for f in os.listdir(ruta_f) if f.endswith(".pdf")]
-        
-        for f in firmados:
-            col_t, col_b = st.columns([3, 1])
-            col_t.write(f"📄 {f}")
-            with open(os.path.join(ruta_f, f), "rb") as file_data:
-                col_b.download_button("Descargar", file_data, file_name=f"FIRMADO_{f}", key=f"dl_{f}")
+        path_f = obtener_ruta("reservas", "firmadas", area_al)
+        finales = [f for f in os.listdir(path_f) if f.endswith(".pdf")]
+        for f in finales:
+            with open(os.path.join(path_f, f), "rb") as file_data:
+                st.download_button(f"Descargar {f}", file_data, file_name=f)
