@@ -3,7 +3,6 @@ import os
 import fitz  # PyMuPDF
 import io
 import numpy as np
-import base64
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 
@@ -78,32 +77,23 @@ else:
                 info_f = firmas_contrasena.get(a_i)
                 if not info_f: st.error("Área sin firma."); continue
 
-                # --- PROCESAMIENTO CON CONVERSIÓN A BASE64 (SOLUCIÓN FINAL) ---
+                # --- PROCESAMIENTO SEGURO ---
                 doc_pdf = fitz.open(path_d)
                 page = doc_pdf[0]
                 pix = page.get_pixmap(dpi=72)
-                img_bytes = pix.tobytes("png")
                 
-                # Cargamos para obtener dimensiones
-                img_pil = Image.open(io.BytesIO(img_bytes))
+                # Convertimos a imagen PIL limpia
+                img_pil = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
                 w, h = img_pil.size
 
-                # Convertimos la imagen a Base64 para saltar el bug de Streamlit
-                encoded = base64.b64encode(img_bytes).decode()
-                bg_url = f"data:image/png;base64,{encoded}"
-
-                st.write("🖱️ **Dibuja el recuadro** para la firma:")
+                st.info("🖱️ **Dibuja el recuadro** donde desees la firma:")
                 
-                # EL CANVAS usando background_image pero con la imagen RECONSTRUIDA
-                # Si el error persiste con background_image, lo forzamos con Pillow de nuevo
-                # pero usando un objeto limpio de NumPy
-                bg_clean = Image.fromarray(np.array(img_pil.convert("RGB")))
-
+                # EL CANVAS (Ajustado para evitar AttributeError)
                 canvas_out = st_canvas(
                     fill_color="rgba(255, 165, 0, 0.3)",
                     stroke_width=2,
                     stroke_color="#ff0000",
-                    background_image=bg_clean, # Usamos la imagen limpia
+                    background_image=img_pil, # Usamos el objeto PIL directamente
                     update_streamlit=True,
                     height=h,
                     width=w,
@@ -117,7 +107,7 @@ else:
                     x0, y0 = o["left"], o["top"]
                     x1, y1 = x0 + (o["width"] * o["scaleX"]), y0 + (o["height"] * o["scaleY"])
                     rect_f = fitz.Rect(x0, y0, x1, y1)
-                    st.success("📍 Ubicación marcada.")
+                    st.success("📍 Ubicación fijada.")
 
                 pwd = st.text_input("Clave de firma", type="password", key=f"p_{id_u}")
                 if st.button("🖋️ Firmar", key=f"b_{id_u}"):
@@ -129,10 +119,10 @@ else:
                             doc_pdf.save(f"{out_p}/{d}")
                             doc_pdf.close()
                             os.remove(path_d)
-                            st.success("Firmado.")
+                            st.success("✅ ¡Firmado con éxito!")
                             st.rerun()
-                        else: st.error("Firma no encontrada.")
-                    else: st.error("Error en clave o recuadro.")
+                        else: st.error("❌ Imagen de firma no encontrada.")
+                    else: st.error("❌ Clave incorrecta o falta recuadro.")
 
     elif rol == "almacen":
         st.header("📦 Almacén")
