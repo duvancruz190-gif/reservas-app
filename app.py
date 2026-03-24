@@ -138,7 +138,6 @@ else:
                                 doc = fitz.open(ruta_full)
                                 pagina = doc[0]
 
-                                # 🔥 DETECCIÓN REAL DE FIRMA 1 + LÍNEA
                                 coincidencias = pagina.search_for("FIRMA 1")
 
                                 if coincidencias:
@@ -159,11 +158,12 @@ else:
                                         linea = sorted(lineas, key=lambda x: x[1])[0]
                                         x1, y1, x2, y2 = linea
 
-                                        ancho_firma = (x2 - x1) * 0.8
-                                        alto_firma = ancho_firma * 0.35
+                                        # 🔥 FIRMA GRANDE Y BIEN CENTRADA
+                                        ancho_firma = (x2 - x1) * 1.1
+                                        alto_firma = ancho_firma * 0.45
 
                                         x_inicio = x1 + ((x2 - x1) - ancho_firma) / 2
-                                        y_inicio = y1 - alto_firma - 5
+                                        y_inicio = y1 - alto_firma + 5
 
                                         rect_firma = fitz.Rect(
                                             x_inicio,
@@ -174,13 +174,13 @@ else:
                                     else:
                                         x_centro = (ref.x0 + ref.x1) / 2
                                         rect_firma = fitz.Rect(
-                                            x_centro - 110,
+                                            x_centro - 120,
                                             ref.y0 - 100,
-                                            x_centro + 110,
-                                            ref.y0 - 20
+                                            x_centro + 120,
+                                            ref.y0 - 10
                                         )
                                 else:
-                                    rect_firma = fitz.Rect(200, 700, 400, 780)
+                                    rect_firma = fitz.Rect(200, 700, 450, 800)
 
                                 pagina.insert_image(rect_firma, filename=info_firma["archivo"])
 
@@ -240,6 +240,9 @@ else:
             archivos = [f for f in archivos if busqueda.lower() in f.lower()]
 
         st.write(f"📄 Resultados: {len(archivos)}")
+
+        if not archivos:
+            st.info("No hay documentos aquí.")
 
         for f_name in archivos:
             ruta = f"{carpeta_area}/{f_name}"
