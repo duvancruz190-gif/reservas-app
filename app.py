@@ -194,6 +194,14 @@ else:
     elif rol == "almacen":
         st.header("📦 Gestión de Documentos")
 
+        # 🔄 BOTÓN ACTUALIZAR
+        colA, colB = st.columns([5,1])
+        with colA:
+            st.subheader("📂 Archivos")
+        with colB:
+            if st.button("🔄 Actualizar"):
+                st.rerun()
+
         estado_file = "reservas/firmadas/estado.json"
 
         if os.path.exists(estado_file):
@@ -224,12 +232,14 @@ else:
             col1, col2, col3, col4 = st.columns([3,1,1,1])
             col1.write(f"{icono} {f_name}")
 
+            # Descargar
             with open(ruta, "rb") as file:
                 if col2.download_button("⬇️", file, file_name=f_name, key=f"dl_{ruta}"):
                     estados[f"{area}/{f_name}"] = True
                     with open(estado_file, "w") as ff:
                         json.dump(estados, ff)
 
+            # Archivar
             if vista == "Firmados":
                 if col3.button("📁", key=f"arch_{ruta}"):
                     destino = f"reservas/archivo/{area}"
@@ -238,12 +248,15 @@ else:
                     st.success("📁 Archivado")
                     st.rerun()
 
+            # Eliminar
             if col4.button("🗑️", key=f"del_{ruta}"):
                 os.remove(ruta)
+
                 clave = f"{area}/{f_name}"
                 if clave in estados:
                     del estados[clave]
                     with open(estado_file, "w") as ff:
                         json.dump(estados, ff)
+
                 st.warning("🗑️ Eliminado")
                 st.rerun()
