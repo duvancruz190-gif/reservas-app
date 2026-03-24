@@ -97,7 +97,6 @@ else:
     elif rol == "ingeniero":
         st.header("✍️ Revisión y Firma")
 
-        # 🔄 BOTÓN ACTUALIZAR
         colA, colB = st.columns([5,1])
         with colA:
             st.subheader("📂 Documentos pendientes")
@@ -139,32 +138,49 @@ else:
                                 doc = fitz.open(ruta_full)
                                 pagina = doc[0]
 
+                                # 🔥 DETECCIÓN REAL DE FIRMA 1 + LÍNEA
                                 coincidencias = pagina.search_for("FIRMA 1")
 
                                 if coincidencias:
                                     ref = coincidencias[0]
-                                    x_centro = (ref.x0 + ref.x1) / 2
-                                    y_linea_real = ref.y0 - 25
 
-                                    ancho_firma = 220
-                                    alto_firma = 80
+                                    lineas = []
+                                    for d in pagina.get_drawings():
+                                        for item in d["items"]:
+                                            if item[0] == "l":
+                                                x1, y1 = item[1]
+                                                x2, y2 = item[2]
 
-                                    rect_firma = fitz.Rect(
-                                        x_centro - ancho_firma / 2,
-                                        y_linea_real - alto_firma,
-                                        x_centro + ancho_firma / 2,
-                                        y_linea_real
-                                    )
+                                                if abs(y1 - y2) < 2:
+                                                    if abs(y1 - ref.y0) < 50:
+                                                        lineas.append((x1, y1, x2, y2))
+
+                                    if lineas:
+                                        linea = sorted(lineas, key=lambda x: x[1])[0]
+                                        x1, y1, x2, y2 = linea
+
+                                        ancho_firma = (x2 - x1) * 0.8
+                                        alto_firma = ancho_firma * 0.35
+
+                                        x_inicio = x1 + ((x2 - x1) - ancho_firma) / 2
+                                        y_inicio = y1 - alto_firma - 5
+
+                                        rect_firma = fitz.Rect(
+                                            x_inicio,
+                                            y_inicio,
+                                            x_inicio + ancho_firma,
+                                            y_inicio + alto_firma
+                                        )
+                                    else:
+                                        x_centro = (ref.x0 + ref.x1) / 2
+                                        rect_firma = fitz.Rect(
+                                            x_centro - 110,
+                                            ref.y0 - 100,
+                                            x_centro + 110,
+                                            ref.y0 - 20
+                                        )
                                 else:
-                                    page_width = pagina.rect.width
-                                    page_height = pagina.rect.height
-
-                                    rect_firma = fitz.Rect(
-                                        page_width / 2 - 90,
-                                        page_height - 180,
-                                        page_width / 2 + 90,
-                                        page_height - 110
-                                    )
+                                    rect_firma = fitz.Rect(200, 700, 400, 780)
 
                                 pagina.insert_image(rect_firma, filename=info_firma["archivo"])
 
@@ -176,7 +192,7 @@ else:
 
                                 os.remove(ruta_full)
 
-                                st.success("✅ Firmado correctamente")
+                                st.success("✅ Firmado correctamente y enviado a almacén")
                                 st.rerun()
 
                             else:
@@ -194,7 +210,6 @@ else:
     elif rol == "almacen":
         st.header("📦 Gestión de Documentos")
 
-        # 🔄 BOTÓN ACTUALIZAR
         colA, colB = st.columns([5,1])
         with colA:
             st.subheader("📂 Archivos")
@@ -213,50 +228,39 @@ else:
         vista = st.radio("Vista", ["Firmados", "Archivados"])
         area = st.selectbox("Selecciona el área", areas)
 
-        if vista == "Firmados":
-            carpeta_area = f"reservas/firmadas/{area}"
-        else:
-            carpeta_area = f"reservas/archivo/{area}"
-
+        carpeta_area = f"reservas/firmadas/{area}" if vista == "Firmados" else f"reservas/archivo/{area}"
         os.makedirs(carpeta_area, exist_ok=True)
+
         archivos = os.listdir(carpeta_area)
 
-        if not archivos:
-            st.info("No hay documentos aquí.")
+        # 🔍 BUSCADOR
+        busqueda = st.text_input("🔍 Buscar por número o nombre")
+
+        if busqueda:
+            archivos = [f for f in archivos if busqueda.lower() in f.lower()]
+
+        st.write(f"📄 Resultados: {len(archivos)}")
 
         for f_name in archivos:
             ruta = f"{carpeta_area}/{f_name}"
-            estado = estados.get(f"{area}/{f_name}", False)
-            icono = "💛" if estado else "💙"
+            icono = "💛" if estados.get(f"{area}/{f_name}", False) else "💙"
 
             col1, col2, col3, col4 = st.columns([3,1,1,1])
             col1.write(f"{icono} {f_name}")
 
-            # Descargar
             with open(ruta, "rb") as file:
-                if col2.download_button("⬇️", file, file_name=f_name, key=f"dl_{ruta}"):
+                if col2.download_button("⬇️", file, file_name=f_name):
                     estados[f"{area}/{f_name}"] = True
                     with open(estado_file, "w") as ff:
                         json.dump(estados, ff)
 
-            # Archivar
             if vista == "Firmados":
                 if col3.button("📁", key=f"arch_{ruta}"):
                     destino = f"reservas/archivo/{area}"
                     os.makedirs(destino, exist_ok=True)
                     shutil.move(ruta, f"{destino}/{f_name}")
-                    st.success("📁 Archivado")
                     st.rerun()
 
-            # Eliminar
             if col4.button("🗑️", key=f"del_{ruta}"):
                 os.remove(ruta)
-
-                clave = f"{area}/{f_name}"
-                if clave in estados:
-                    del estados[clave]
-                    with open(estado_file, "w") as ff:
-                        json.dump(estados, ff)
-
-                st.warning("🗑️ Eliminado")
                 st.rerun()
