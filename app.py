@@ -147,7 +147,7 @@ else:
                                 pagina = doc[0]
 
                                 # ===============================
-                                # 🔥 FIRMA INTELIGENTE
+                                # 🔥 FIRMA PERFECTA SOBRE LÍNEA
                                 # ===============================
                                 rect_firma = None
 
@@ -174,14 +174,14 @@ else:
                                             key=lambda x: abs(x[1] - ref.y0)
                                         )[0]
 
-                                        ancho = (x2 - x1)
-                                        alto = ancho * 0.35
+                                        # 🔥 AJUSTE FINO FINAL
+                                        alto = (x2 - x1) * 0.22
 
                                         rect_firma = fitz.Rect(
                                             x1,
-                                            y1 - alto,
+                                            y1 - alto - 2,
                                             x2,
-                                            y1
+                                            y1 - 2
                                         )
 
                                     else:
@@ -197,8 +197,12 @@ else:
                                 else:
                                     rect_firma = fitz.Rect(200, 700, 450, 800)
 
-                                # INSERTAR FIRMA
-                                pagina.insert_image(rect_firma, filename=info_firma["archivo"])
+                                # 🔥 INSERTAR FIRMA ROTADA
+                                pagina.insert_image(
+                                    rect_firma,
+                                    filename=info_firma["archivo"],
+                                    rotate=90
+                                )
 
                                 carpeta_firmadas = f"reservas/firmadas/{area}"
                                 os.makedirs(carpeta_firmadas, exist_ok=True)
