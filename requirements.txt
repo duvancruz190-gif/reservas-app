@@ -2,5 +2,5 @@ PyMuPDF
 streamlit-pdf-viewer
 streamlit-drawable-canvas
 matplotlib
-pip install streamlit-drawable-canvas pdf2image Pillow
+pip install streamlit-drawable-canvas pdf2image Pillow pymupdf
 
