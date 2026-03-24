@@ -96,6 +96,15 @@ else:
     # ===========================
     elif rol == "ingeniero":
         st.header("✍️ Revisión y Firma")
+
+        # 🔄 BOTÓN ACTUALIZAR
+        colA, colB = st.columns([5,1])
+        with colA:
+            st.subheader("📂 Documentos pendientes")
+        with colB:
+            if st.button("🔄 Actualizar"):
+                st.rerun()
+
         area = st.selectbox("Selecciona el área", areas)
         carpeta_area = f"reservas/pendientes/{area}"
         pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
@@ -130,14 +139,11 @@ else:
                                 doc = fitz.open(ruta_full)
                                 pagina = doc[0]
 
-                                # 🔥 BUSCAR "FIRMA 1"
                                 coincidencias = pagina.search_for("FIRMA 1")
 
                                 if coincidencias:
                                     ref = coincidencias[0]
                                     x_centro = (ref.x0 + ref.x1) / 2
-
-                                    # Ajuste fino (sube/baja firma)
                                     y_linea_real = ref.y0 - 25
 
                                     ancho_firma = 220
@@ -183,7 +189,7 @@ else:
                         st.error("❌ No hay firma configurada")
 
     # ===========================
-    # ALMACÉN (PRO)
+    # ALMACÉN
     # ===========================
     elif rol == "almacen":
         st.header("📦 Gestión de Documentos")
@@ -218,32 +224,26 @@ else:
             col1, col2, col3, col4 = st.columns([3,1,1,1])
             col1.write(f"{icono} {f_name}")
 
-            # Descargar
             with open(ruta, "rb") as file:
                 if col2.download_button("⬇️", file, file_name=f_name, key=f"dl_{ruta}"):
                     estados[f"{area}/{f_name}"] = True
                     with open(estado_file, "w") as ff:
                         json.dump(estados, ff)
 
-            # Archivar (solo en firmados)
             if vista == "Firmados":
                 if col3.button("📁", key=f"arch_{ruta}"):
                     destino = f"reservas/archivo/{area}"
                     os.makedirs(destino, exist_ok=True)
-
                     shutil.move(ruta, f"{destino}/{f_name}")
                     st.success("📁 Archivado")
                     st.rerun()
 
-            # Eliminar
             if col4.button("🗑️", key=f"del_{ruta}"):
                 os.remove(ruta)
-
                 clave = f"{area}/{f_name}"
                 if clave in estados:
                     del estados[clave]
                     with open(estado_file, "w") as ff:
                         json.dump(estados, ff)
-
                 st.warning("🗑️ Eliminado")
                 st.rerun()
