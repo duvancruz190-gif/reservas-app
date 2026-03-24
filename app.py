@@ -221,6 +221,14 @@ else:
         os.makedirs(carpeta_area, exist_ok=True)
         archivos = os.listdir(carpeta_area)
 
+        # 🔍 BUSCADOR
+        busqueda = st.text_input("🔍 Buscar por número o nombre")
+
+        if busqueda:
+            archivos = [f for f in archivos if busqueda.lower() in f.lower()]
+
+        st.write(f"📄 Resultados encontrados: {len(archivos)}")
+
         if not archivos:
             st.info("No hay documentos aquí.")
 
