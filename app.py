@@ -49,7 +49,6 @@ if not st.session_state.login:
     p = st.text_input("Contraseña", type="password")
 
     if st.button("Ingresar", use_container_width=True):
-
         if u in usuarios and usuarios[u]["password"] == p:
             st.session_state.login = True
             st.session_state.rol = usuarios[u]["rol"]
@@ -59,20 +58,19 @@ if not st.session_state.login:
             st.error("Credenciales incorrectas")
 
 else:
-
     # --- SIDEBAR ---
     with st.sidebar:
         st.title("📂 Menú Principal")
         st.write(f"👤 Usuario: **{st.session_state.get('user_name')}**")
         st.write(f"🔑 Rol: **{st.session_state.get('rol').upper()}**")
+        st.write("---")
 
-        if st.button("🚪 Cerrar Sesión"):
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
 
     st.title("📋 Gestión de Reservas")
-
     rol = st.session_state.get('rol')
 
     # ===========================
@@ -93,9 +91,9 @@ else:
                 with open(f"{carpeta_area}/{arch.name}", "wb") as f:
                     f.write(arch.getbuffer())
 
-                st.success("✅ Documento enviado")
+                st.success(f"✅ Documento enviado a {area}.")
             else:
-                st.warning("Selecciona un archivo")
+                st.warning("Selecciona un archivo.")
 
     # ===========================
     # INGENIERO
@@ -104,13 +102,19 @@ else:
 
         st.header("✍️ Revisión y Firma")
 
-        area = st.selectbox("Selecciona el área", areas)
+        colA, colB = st.columns([5,1])
+        with colA:
+            st.subheader("📂 Documentos pendientes")
+        with colB:
+            if st.button("🔄 Actualizar"):
+                st.rerun()
 
+        area = st.selectbox("Selecciona el área", areas)
         carpeta_area = f"reservas/pendientes/{area}"
         pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
 
         if not pendientes:
-            st.info("No hay documentos pendientes")
+            st.info("No hay documentos pendientes en esta área.")
 
         for arc in pendientes:
 
@@ -118,110 +122,169 @@ else:
 
                 ruta_full = f"{carpeta_area}/{arc}"
 
-                pdf_viewer(ruta_full)
+                st.write("### Vista previa")
+                try:
+                    pdf_viewer(ruta_full, width=1000, height=800)
+                except:
+                    with open(ruta_full, "rb") as f:
+                        st.download_button("Descargar PDF", f, file_name=arc)
 
-                contra_firma = st.text_input("Contraseña", type="password", key=arc)
+                st.write("---")
 
-                if st.button("Firmar", key=f"btn_{arc}"):
+                contra_firma = st.text_input("Contraseña de firma", type="password", key=f"pw_{arc}")
 
-                    info = firmas_contrasena.get(area)
+                if st.button("🖋️ Firmar y enviar", key=f"btn_{arc}"):
 
-                    if not info:
-                        st.error("No hay firma configurada")
-                        continue
+                    if area in firmas_contrasena:
 
-                    if contra_firma != info["password"]:
-                        st.error("Contraseña incorrecta")
-                        continue
+                        info_firma = firmas_contrasena[area]
 
-                    doc = fitz.open(ruta_full)
-                    pagina = doc[0]
+                        if contra_firma == info_firma["password"]:
 
-                    coincidencias = pagina.search_for("FIRMA 1")
+                            if os.path.exists(info_firma["archivo"]):
 
-                    if coincidencias:
+                                doc = fitz.open(ruta_full)
+                                pagina = doc[0]
 
-                        ref = coincidencias[0]
+                                # ===============================
+                                # 🔥 FIRMA PERFECTA SOBRE LÍNEA
+                                # ===============================
+                                rect_firma = None
 
-                        lineas = []
+                                coincidencias = pagina.search_for("FIRMA 1")
 
-                        for d in pagina.get_drawings():
-                            for item in d["items"]:
-                                if item[0] == "l":
-                                    x1, y1 = item[1]
-                                    x2, y2 = item[2]
+                                if coincidencias:
+                                    ref = coincidencias[0]
 
-                                    if abs(y1 - y2) < 2:
-                                        if abs(y1 - ref.y0) < 50:
-                                            lineas.append((x1, y1, x2, y2))
+                                    lineas_validas = []
 
-                        if lineas:
+                                    for d in pagina.get_drawings():
+                                        for item in d["items"]:
+                                            if item[0] == "l":
+                                                x1, y1 = item[1]
+                                                x2, y2 = item[2]
 
-                            linea = sorted(lineas, key=lambda x: x[1])[0]
-                            x1, y1, x2, y2 = linea
+                                                if abs(y1 - y2) < 2:
+                                                    if y1 < ref.y0 and abs(y1 - ref.y0) < 80:
+                                                        lineas_validas.append((x1, y1, x2, y2))
 
-                            ancho_firma = (x2 - x1) * 1.05
-                            alto_firma = ancho_firma * 0.35
+                                    if lineas_validas:
+                                        x1, y1, x2, y2 = sorted(
+                                            lineas_validas,
+                                            key=lambda x: abs(x[1] - ref.y0)
+                                        )[0]
 
-                            x_inicio = x1 + ((x2 - x1) - ancho_firma) / 2
+                                        # 🔥 AJUSTE FINO FINAL
+                                        alto = (x2 - x1) * 0.22
 
-                            # 🔥 AJUSTE FINO (10 mm arriba)
-                            ajuste_mm = 28
-                            y_inicio = y1 - alto_firma - ajuste_mm
+                                        rect_firma = fitz.Rect(
+                                            x1,
+                                            y1 - alto - 2,
+                                            x2,
+                                            y1 - 2
+                                        )
 
-                            rect_firma = fitz.Rect(
-                                x_inicio,
-                                y_inicio,
-                                x_inicio + ancho_firma,
-                                y_inicio + alto_firma
-                            )
+                                    else:
+                                        x_centro = (ref.x0 + ref.x1) / 2
+
+                                        rect_firma = fitz.Rect(
+                                            x_centro - 120,
+                                            ref.y0 - 100,
+                                            x_centro + 120,
+                                            ref.y0 - 10
+                                        )
+
+                                else:
+                                    rect_firma = fitz.Rect(200, 700, 450, 800)
+
+                                # 🔥 INSERTAR FIRMA ROTADA
+                                pagina.insert_image(
+                                    rect_firma,
+                                    filename=info_firma["archivo"],
+                                    rotate=90
+                                )
+
+                                carpeta_firmadas = f"reservas/firmadas/{area}"
+                                os.makedirs(carpeta_firmadas, exist_ok=True)
+
+                                doc.save(f"{carpeta_firmadas}/{arc}")
+                                doc.close()
+
+                                os.remove(ruta_full)
+
+                                st.success("✅ Firmado correctamente y enviado a almacén")
+                                st.rerun()
+
+                            else:
+                                st.error("❌ No se encontró la firma")
 
                         else:
-                            rect_firma = fitz.Rect(200, 700, 450, 800)
+                            st.error("❌ Contraseña incorrecta")
 
                     else:
-                        rect_firma = fitz.Rect(200, 700, 450, 800)
-
-                    pagina.insert_image(rect_firma, filename=info["archivo"])
-
-                    destino = f"reservas/firmadas/{area}"
-                    os.makedirs(destino, exist_ok=True)
-
-                    doc.save(f"{destino}/{arc}")
-                    doc.close()
-
-                    os.remove(ruta_full)
-
-                    st.success("✅ Firmado correctamente")
-                    st.rerun()
+                        st.error("❌ No hay firma configurada")
 
     # ===========================
     # ALMACÉN
     # ===========================
     elif rol == "almacen":
 
-        st.header("📦 Documentos")
+        st.header("📦 Gestión de Documentos")
 
-        area = st.selectbox("Área", areas)
+        colA, colB = st.columns([5,1])
+        with colA:
+            st.subheader("📂 Archivos")
+        with colB:
+            if st.button("🔄 Actualizar"):
+                st.rerun()
 
-        carpeta = f"reservas/firmadas/{area}"
-        os.makedirs(carpeta, exist_ok=True)
+        estado_file = "reservas/firmadas/estado.json"
 
-        archivos = os.listdir(carpeta)
+        if os.path.exists(estado_file):
+            with open(estado_file, "r") as f:
+                estados = json.load(f)
+        else:
+            estados = {}
+
+        vista = st.radio("Vista", ["Firmados", "Archivados"])
+        area = st.selectbox("Selecciona el área", areas)
+
+        carpeta_area = f"reservas/firmadas/{area}" if vista == "Firmados" else f"reservas/archivo/{area}"
+        os.makedirs(carpeta_area, exist_ok=True)
+
+        archivos = os.listdir(carpeta_area)
+
+        busqueda = st.text_input("🔍 Buscar por número o nombre")
+
+        if busqueda:
+            archivos = [f for f in archivos if busqueda.lower() in f.lower()]
+
+        st.write(f"📄 Resultados: {len(archivos)}")
+
+        if not archivos:
+            st.info("No hay documentos aquí.")
 
         for f_name in archivos:
 
-            ruta = f"{carpeta}/{f_name}"
+            ruta = f"{carpeta_area}/{f_name}"
+            icono = "💛" if estados.get(f"{area}/{f_name}", False) else "💙"
 
-            col1, col2, col3 = st.columns([4,1,1])
-
-            col1.write(f_name)
+            col1, col2, col3, col4 = st.columns([3,1,1,1])
+            col1.write(f"{icono} {f_name}")
 
             with open(ruta, "rb") as file:
-                col2.download_button("⬇️", file, file_name=f_name)
+                if col2.download_button("⬇️", file, file_name=f_name):
+                    estados[f"{area}/{f_name}"] = True
+                    with open(estado_file, "w") as ff:
+                        json.dump(estados, ff)
 
-            if col3.button("📁", key=f_name):
-                destino = f"reservas/archivo/{area}"
-                os.makedirs(destino, exist_ok=True)
-                shutil.move(ruta, f"{destino}/{f_name}")
+            if vista == "Firmados":
+                if col3.button("📁", key=f"arch_{ruta}"):
+                    destino = f"reservas/archivo/{area}"
+                    os.makedirs(destino, exist_ok=True)
+                    shutil.move(ruta, f"{destino}/{f_name}")
+                    st.rerun()
+
+            if col4.button("🗑️", key=f"del_{ruta}"):
+                os.remove(ruta)
                 st.rerun()
