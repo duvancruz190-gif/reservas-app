@@ -8,12 +8,48 @@ import shutil
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
+# --- ESTILO EMPRESARIAL ---
+st.markdown("""
+    <style>
+        .stApp {
+            background-color: #f5f7fa;
+        }
+
+        .stButton>button {
+            background-color: #005baa;
+            color: white;
+            border-radius: 8px;
+            height: 45px;
+            font-weight: bold;
+        }
+
+        .stButton>button:hover {
+            background-color: #003f7d;
+            color: white;
+        }
+
+        .stTextInput>div>div>input {
+            border-radius: 8px;
+        }
+
+        section[data-testid="stSidebar"] {
+            background-color: #002b5c;
+            color: white;
+        }
+
+        section[data-testid="stSidebar"] * {
+            color: white !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- CREAR CARPETAS ---
 for carpeta in [
     "reservas/pendientes",
     "reservas/firmadas",
     "reservas/firmas",
-    "reservas/archivo"
+    "reservas/archivo",
+    "assets"
 ]:
     os.makedirs(carpeta, exist_ok=True)
 
@@ -43,27 +79,46 @@ if "login" not in st.session_state:
 # ===========================
 if not st.session_state.login:
 
-    st.title("🔐 Acceso al Sistema")
+    col1, col2, col3 = st.columns([1,2,1])
 
-    u = st.text_input("Usuario")
-    p = st.text_input("Contraseña", type="password")
+    with col2:
 
-    if st.button("Ingresar", use_container_width=True):
-        if u in usuarios and usuarios[u]["password"] == p:
-            st.session_state.login = True
-            st.session_state.rol = usuarios[u]["rol"]
-            st.session_state.user_name = u
-            st.rerun()
-        else:
-            st.error("Credenciales incorrectas")
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png")
 
+        st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+        st.caption("Gestión de Reservas - Eternit Colombiana")
+
+        st.markdown("---")
+
+        u = st.text_input("Usuario")
+        p = st.text_input("Contraseña", type="password")
+
+        if st.button("Ingresar", use_container_width=True):
+            if u in usuarios and usuarios[u]["password"] == p:
+                st.session_state.login = True
+                st.session_state.rol = usuarios[u]["rol"]
+                st.session_state.user_name = u
+                st.rerun()
+            else:
+                st.error("Credenciales incorrectas")
+
+# ===========================
+# SISTEMA
+# ===========================
 else:
+
     # --- SIDEBAR ---
     with st.sidebar:
-        st.title("📂 Menú Principal")
-        st.write(f"👤 Usuario: **{st.session_state.get('user_name')}**")
+
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png", width=180)
+
+        st.markdown("### 📂 Menú Principal")
+        st.write(f"👤 **{st.session_state.get('user_name')}**")
         st.write(f"🔑 Rol: **{st.session_state.get('rol').upper()}**")
-        st.write("---")
+
+        st.markdown("---")
 
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             for key in list(st.session_state.keys()):
@@ -146,16 +201,11 @@ else:
                                 doc = fitz.open(ruta_full)
                                 pagina = doc[0]
 
-                                # ===============================
-                                # 🔥 FIRMA PERFECTA SOBRE LÍNEA
-                                # ===============================
                                 rect_firma = None
-
                                 coincidencias = pagina.search_for("FIRMA 1")
 
                                 if coincidencias:
                                     ref = coincidencias[0]
-
                                     lineas_validas = []
 
                                     for d in pagina.get_drawings():
@@ -174,7 +224,6 @@ else:
                                             key=lambda x: abs(x[1] - ref.y0)
                                         )[0]
 
-                                        # 🔥 AJUSTE FINO FINAL
                                         alto = (x2 - x1) * 0.22
 
                                         rect_firma = fitz.Rect(
@@ -183,21 +232,17 @@ else:
                                             x2,
                                             y1 - 2
                                         )
-
                                     else:
                                         x_centro = (ref.x0 + ref.x1) / 2
-
                                         rect_firma = fitz.Rect(
                                             x_centro - 120,
                                             ref.y0 - 100,
                                             x_centro + 120,
                                             ref.y0 - 10
                                         )
-
                                 else:
                                     rect_firma = fitz.Rect(200, 700, 450, 800)
 
-                                # 🔥 INSERTAR FIRMA ROTADA
                                 pagina.insert_image(
                                     rect_firma,
                                     filename=info_firma["archivo"],
@@ -217,10 +262,8 @@ else:
 
                             else:
                                 st.error("❌ No se encontró la firma")
-
                         else:
                             st.error("❌ Contraseña incorrecta")
-
                     else:
                         st.error("❌ No hay firma configurada")
 
