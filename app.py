@@ -6,7 +6,7 @@ from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Sistema de Reservas v4", layout="wide")
+st.set_page_config(page_title="Gestión de Reservas v4", layout="wide")
 
 # --- CARPETAS ---
 for c in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas", "reservas/archivo"]:
@@ -61,6 +61,9 @@ else:
                 st.success("Enviado con éxito.")
             else: st.warning("Sube el archivo.")
 
+    # ===========================
+    # ROL INGENIERO: SOLUCIÓN FINAL
+    # ===========================
     elif rol == "ingeniero":
         st.header("✍️ Ubicar Firma")
         a_i = st.selectbox("Seleccione el Área", areas)
@@ -83,16 +86,19 @@ else:
                 img_pil = Image.open(io.BytesIO(pix.tobytes("png")))
                 w, h = img_pil.size
 
+                # Mostramos la imagen del PDF de forma independiente
                 st.write("1. Visualización del documento:")
-                st.image(img_pil, caption="Vista previa del PDF")
+                st.image(img_pil, caption="Vista previa del PDF", use_container_width=False)
 
-                st.write("2. Dibuje el recuadro de firma AQUÍ (Lienzo Transparente):")
-                # El Canvas ya NO tiene background_image, evitando el AttributeError
+                st.write("2. Dibuje el recuadro de firma AQUÍ:")
+                st.caption("Dibuje un rectángulo en el cuadro gris de abajo simulando la posición en el PDF de arriba.")
+                
+                # EL CANVAS SIN IMAGEN DE FONDO (Para evitar el error)
                 canvas_out = st_canvas(
                     fill_color="rgba(255, 165, 0, 0.3)",
                     stroke_width=2,
                     stroke_color="#ff0000",
-                    background_color="#eeeeee",
+                    background_color="#f0f2f6", # Color gris claro neutro
                     update_streamlit=True,
                     height=h,
                     width=w,
@@ -106,7 +112,7 @@ else:
                     x0, y0 = o["left"], o["top"]
                     x1, y1 = x0 + (o["width"] * o["scaleX"]), y0 + (o["height"] * o["scaleY"])
                     rect_f = fitz.Rect(x0, y0, x1, y1)
-                    st.success("📍 Posición capturada.")
+                    st.success("📍 Posición capturada correctamente.")
 
                 pwd = st.text_input("Clave de firma", type="password", key=f"p_{id_u}")
                 if st.button("🖋️ Estampar Firma", key=f"b_{id_u}"):
