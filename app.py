@@ -8,13 +8,14 @@ import numpy as np
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Gestión de Reservas - Firma Pro", layout="wide")
 
-# --- AUTO-CREACIÓN DE CARPETAS ---
+# --- CREACIÓN AUTOMÁTICA DE CARPETAS ---
 for carpeta in ["reservas/pendientes", "reservas/firmadas", "reservas/firmas", "reservas/archivo"]:
     os.makedirs(carpeta, exist_ok=True)
 
+# --- CONFIGURACIÓN DE DATOS ---
 areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
          "Recursos Humanos", "Ambiental", "Salud Ocupacional",
          "Marketing", "Financiera", "Almacén"]
@@ -25,7 +26,7 @@ usuarios = {
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# Configuración de firmas (Asegúrate de que el archivo exista en la carpeta)
+# IMPORTANTE: Asegúrate de que el archivo exista en 'reservas/firmas/'
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/carlos_alfonso.jpeg", "password": "1234"},
 }
@@ -51,7 +52,7 @@ if not st.session_state.login:
             st.error("Credenciales incorrectas")
 else:
     with st.sidebar:
-        st.title("📂 Menú")
+        st.title("📂 Menú Principal")
         st.write(f"👤: **{st.session_state.user_name}**")
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
             for key in list(st.session_state.keys()): del st.session_state[key]
@@ -64,26 +65,26 @@ else:
     # ===========================
     if rol == "usuario":
         st.header("📤 Enviar Nueva Reserva")
-        area_u = st.selectbox("Área de destino", areas)
+        area_u = st.selectbox("Selecciona área de destino", areas)
         arch = st.file_uploader("Subir PDF", type=["pdf"])
         if st.button("Enviar para Firma"):
             if arch:
                 path = f"reservas/pendientes/{area_u}"
                 os.makedirs(path, exist_ok=True)
                 with open(f"{path}/{arch.name}", "wb") as f: f.write(arch.getbuffer())
-                st.success(f"✅ Documento enviado a {area_u}")
+                st.success(f"✅ Enviado a {area_u}")
             else: st.warning("Sube un archivo PDF.")
 
-    # ==============================================================================
-    # ROL: INGENIERO (Aquí aplicamos el parche para el AttributeError)
-    # ==============================================================================
+    # ===========================
+    # ROL: INGENIERO (SOLUCIÓN AL ATTRIBUTEERROR)
+    # ===========================
     elif rol == "ingeniero":
         st.header("✍️ Ubicar Firma con Mouse")
-        area_ing = st.selectbox("Filtrar por Área", areas)
+        area_ing = st.selectbox("Área", areas)
         dir_p = f"reservas/pendientes/{area_ing}"
         docs = os.listdir(dir_p) if os.path.exists(dir_p) else []
 
-        if not docs: st.info("No hay documentos pendientes.")
+        if not docs: st.info("No hay pendientes.")
 
         for d in docs:
             id_u = d.replace(".", "_")
@@ -95,29 +96,26 @@ else:
                     st.error("⚠️ Área sin firma configurada."); continue
 
                 # --- PROCESAMIENTO SEGURO DE IMAGEN (EL PARCHE) ---
-                doc_pdf = fitz.open(path_d)
-                page = doc_pdf[0]
+                pdf_doc = fitz.open(path_d)
+                page = pdf_doc[0]
                 pix = page.get_pixmap(dpi=72)
                 
-                # Paso 1: Convertir a imagen PIL
+                # Convertimos a PIL y luego a NumPy para "limpiar" la imagen
                 img_pil = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-                
-                # Paso 2: Convertir a NumPy Array (esto limpia los metadatos corruptos)
                 img_array = np.array(img_pil)
                 
-                # Paso 3: Volver a PIL. Esto garantiza que Streamlit pueda procesarla.
-                bg_image_limpia = Image.fromarray(img_array)
-                
-                w, h = bg_image_limpia.size
+                # Reconstruimos la imagen final (esto evita el error de image_to_url)
+                bg_image_clean = Image.fromarray(img_array)
+                w, h = bg_image_clean.size
 
-                st.markdown("👇 **Dibuja un recuadro** donde quieras colocar la firma:")
+                st.info("🖱️ **Dibuja un recuadro** donde desees estampar la firma.")
                 
-                # CANVAS - Ya no debería dar AttributeError
+                # CANVAS
                 canvas_out = st_canvas(
                     fill_color="rgba(255, 165, 0, 0.3)",
                     stroke_width=2,
                     stroke_color="#ff0000",
-                    background_image=bg_image_limpia,
+                    background_image=bg_image_clean,
                     update_streamlit=True,
                     height=h,
                     width=w,
@@ -125,32 +123,30 @@ else:
                     key=f"canvas_{id_u}",
                 )
 
-                # --- VALIDACIÓN DE COORDENADAS ---
+                # COORDENADAS
                 rect_f = None
                 if canvas_out.json_data and canvas_out.json_data["objects"]:
                     o = canvas_out.json_data["objects"][-1]
                     x0, y0 = o["left"], o["top"]
                     x1, y1 = x0 + (o["width"] * o["scaleX"]), y0 + (o["height"] * o["scaleY"])
                     rect_f = fitz.Rect(x0, y0, x1, y1)
-                    st.success("📍 Ubicación marcada.")
+                    st.success("📍 Ubicación fijada.")
 
-                # --- PROCESO DE FIRMA ---
                 st.write("---")
                 pwd = st.text_input("Clave de firma", type="password", key=f"p_{id_u}")
-                if st.button("🖋️ Aplicar Firma", key=f"b_{id_u}"):
+                if st.button("🖋️ Firmar Documento", key=f"b_{id_u}"):
                     if pwd == info_f["password"] and rect_f:
                         if os.path.exists(info_f["archivo"]):
-                            # Estampar firma
                             page.insert_image(rect_f, filename=info_f["archivo"])
                             out = f"reservas/firmadas/{area_ing}"
                             os.makedirs(out, exist_ok=True)
-                            doc_pdf.save(f"{out}/{d}")
-                            doc_pdf.close()
+                            pdf_doc.save(f"{out}/{d}")
+                            pdf_doc.close()
                             os.remove(path_d)
-                            st.success("✅ Documento firmado con éxito.")
+                            st.success("✅ Firmado.")
                             st.rerun()
-                        else: st.error("❌ El archivo de imagen de la firma no existe.")
-                    else: st.error("❌ Clave incorrecta o no has dibujado el recuadro.")
+                        else: st.error("❌ No existe el archivo de la firma.")
+                    else: st.error("❌ Clave incorrecta o falta el recuadro.")
 
     # ===========================
     # ROL: ALMACÉN
