@@ -1,4 +1,4 @@
 PyMuPDF
 streamlit-drawable-canvas
 Pillow
-matplotlib
+numpy
