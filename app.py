@@ -65,7 +65,7 @@ usuarios = {
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# --- FIRMAS (ACTUALIZADA) ---
+# --- FIRMAS ---
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/Imagen1.png", "password": "1234"},
 }
@@ -224,7 +224,7 @@ else:
                                             key=lambda x: abs(x[1] - ref.y0)
                                         )[0]
 
-                                        alto = (x2 - x1) * 0.22
+                                        alto = (x2 - x1) * 0.35  # 🔥 más grande
 
                                         rect_firma = fitz.Rect(
                                             x1,
@@ -243,10 +243,10 @@ else:
                                 else:
                                     rect_firma = fitz.Rect(200, 700, 450, 800)
 
+                                # 🔥 SIN ROTACIÓN (horizontal)
                                 pagina.insert_image(
                                     rect_firma,
-                                    filename=info_firma["archivo"],
-                                    rotate=90
+                                    filename=info_firma["archivo"]
                                 )
 
                                 carpeta_firmadas = f"reservas/firmadas/{area}"
