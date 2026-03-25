@@ -65,7 +65,7 @@ usuarios = {
     "almacen": {"password": "000", "rol": "almacen"}
 }
 
-# --- FIRMAS ---
+# --- FIRMAS (ACTUALIZADA) ---
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/Imagen1.png", "password": "1234"},
 }
