@@ -225,16 +225,16 @@ else:
                                             key=lambda x: abs(x[1] - ref.y0)
                                         )[0]
 
-                                        # 🔥 AJUSTE FINAL
-                                        alto = (x2 - x1) * 0.18
-                                        ancho_firma = (x2 - x1) * 0.4
+                                        # 🔥 AJUSTE FINO FINAL
+                                        alto = (x2 - x1) * 0.15
+                                        ancho_firma = (x2 - x1) * 0.35
                                         x_centro = (x1 + x2) / 2
 
                                         rect_firma = fitz.Rect(
                                             x_centro - ancho_firma / 2,
-                                            y1 - alto + 3,
+                                            y1 - alto + 6,
                                             x_centro + ancho_firma / 2,
-                                            y1 + 3
+                                            y1 + 2
                                         )
 
                                     else:
@@ -272,7 +272,7 @@ else:
                         st.error("❌ No hay firma configurada")
 
     # ===========================
-    # ALMACÉN (NO TOCADO)
+    # ALMACÉN (SIN CAMBIOS)
     # ===========================
     elif rol == "almacen":
 
