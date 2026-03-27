@@ -109,7 +109,6 @@ if not st.session_state.login:
 # ===========================
 else:
 
-    # --- SIDEBAR ---
     with st.sidebar:
 
         if os.path.exists("assets/ETERNITTTTT.png"):
@@ -225,9 +224,14 @@ else:
                                             key=lambda x: abs(x[1] - ref.y0)
                                         )[0]
 
-                                        alto = (x2 - x1) * 0.25  # 🔥 más grande
+                                        # 🔥 AJUSTE FINAL
+                                        alto = (x2 - x1) * 0.25
 
-                                       rect_firma = fitz.Rect( x1, y1 - alto, x2, y1)
+                                        rect_firma = fitz.Rect(
+                                            x1,
+                                            y1 - alto,
+                                            x2,
+                                            y1
                                         )
                                     else:
                                         x_centro = (ref.x0 + ref.x1) / 2
@@ -240,7 +244,6 @@ else:
                                 else:
                                     rect_firma = fitz.Rect(200, 700, 450, 800)
 
-                                # 🔥 SIN ROTACIÓN (horizontal)
                                 pagina.insert_image(
                                     rect_firma,
                                     filename=info_firma["archivo"]
