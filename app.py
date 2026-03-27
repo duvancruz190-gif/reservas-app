@@ -225,7 +225,7 @@ else:
                                             key=lambda x: abs(x[1] - ref.y0)
                                         )[0]
 
-                                        alto = (x2 - x1) * 0.35  # 🔥 más grande
+                                        alto = (x2 - x1) * 0.25  # 🔥 más grande
 
                                         rect_firma = fitz.Rect(
                                             x1,
