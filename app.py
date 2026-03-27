@@ -68,6 +68,7 @@ usuarios = {
 # --- FIRMAS ---
 firmas_contrasena = {
     "Producción": {"archivo": "reservas/firmas/Imagen1.png", "password": "1234"},
+    "Logística": {"archivo": "reservas/firmas/logistica.jpeg", "password": "5678"},
 }
 
 # --- SESIÓN ---
