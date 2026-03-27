@@ -227,11 +227,12 @@ else:
 
                                         alto = (x2 - x1) * 0.25  # 🔥 más grande
 
-                                        rect_firma = fitz.Rect(
-                                            x1,
-                                            y1 - alto - 2,
-                                            x2,
-                                            y1 - 2
+                                       rect_firma = fitz.Rect(
+    x1,
+    y1 - alto,
+    x2,
+    y1
+)
                                         )
                                     else:
                                         x_centro = (ref.x0 + ref.x1) / 2
