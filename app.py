@@ -226,13 +226,13 @@ else:
                                         )[0]
 
                                         # 🔥 AJUSTE FINO FINAL
-                                        alto = (x2 - x1) * 0.15
-                                        ancho_firma = (x2 - x1) * 0.35
+                                        alto = 45
+                                        ancho_firma = 140
                                         x_centro = (x1 + x2) / 2
 
                                         rect_firma = fitz.Rect(
                                             x_centro - ancho_firma / 2,
-                                            y1 - alto + 6,
+                                            y1 - alto,
                                             x_centro + ancho_firma / 2,
                                             y1 + 2
                                         )
