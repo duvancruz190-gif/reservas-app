@@ -236,6 +236,11 @@ else:
                                             x_centro + ancho_firma / 2,
                                             y1 + 2
                                         )
+                                        pagina.insert_image(
+                                            rect_firma,
+                                            filename=info_firma["archivo"],
+                                            keep_proportion=False
+                                        )
 
                                     else:
                                         x_centro = (ref.x0 + ref.x1) / 2
