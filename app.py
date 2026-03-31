@@ -239,7 +239,7 @@ else:
                                         pagina.insert_image(
                                             rect_firma,
                                             filename=info_firma["archivo"],
-                                            keep_proportion=False
+                                            keep_proportion=True
                                         )
 
                                     else:
