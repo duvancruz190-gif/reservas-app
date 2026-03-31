@@ -226,8 +226,8 @@ else:
                                         )[0]
 
                                         # 🔥 AJUSTE FINO FINAL
-                                        alto = 45
-                                        ancho_firma = 140
+                                        alto = 40
+                                        ancho_firma = 90
                                         x_centro = (x1 + x2) / 2
 
                                         rect_firma = fitz.Rect(
