@@ -79,7 +79,7 @@ st.markdown("""
         .stButton>button,
         div.stDownloadButton > button {
             background-color: #d21b28 !important; /* rojo corporativo Eternit */
-            color: white !important; /* texto blanco */
+            color: white !important;
             border-radius: 8px;
             height: 45px;
             font-weight: bold;
@@ -89,7 +89,7 @@ st.markdown("""
         }
         .stButton>button:hover,
         div.stDownloadButton > button:hover {
-            background-color: #b51724 !important; /* rojo más oscuro al hover */
+            background-color: #b51724 !important;
             transform: translateY(-1px);
         }
 
@@ -173,8 +173,9 @@ if "login" not in st.session_state:
 if not st.session_state.login:
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        if os.path.exists("assets/ETERNITTTTT.png"):
-            st.image("assets/ETERNITTTTT.png", width=250)  # logo más grande y nítido
+        # Solo logo limpio sin la frase pixelada
+        if os.path.exists("assets/ETERNIT_LOGO_LIMPIO.png"):
+            st.image("assets/ETERNIT_LOGO_LIMPIO.png", width=250)
         st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
         st.caption("Gestión de Reservas - Eternit Colombiana")
         u = st.text_input("Usuario")
@@ -191,8 +192,9 @@ if not st.session_state.login:
 # ================= SISTEMA =================
 else:
     with st.sidebar:
-        if os.path.exists("assets/ETERNITTTTT.png"):
-            st.image("assets/ETERNITTTTT.png", width=200)  # tamaño consistente en sidebar
+        # Logo limpio también en sidebar
+        if os.path.exists("assets/ETERNIT_LOGO_LIMPIO.png"):
+            st.image("assets/ETERNIT_LOGO_LIMPIO.png", width=200)
         st.write(f"👤 {st.session_state.user_name}")
         st.write(f"🔑 {st.session_state.rol}")
 
