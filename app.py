@@ -58,51 +58,58 @@ if "historial" not in st.session_state:
 
 # --- ESTILO ---
 st.markdown("""
-    <style>
-        .stApp { background-color: #f5f7fa; }
+<style>
+/* BARRA LATERAL COMPLETA AZUL */
+section[data-testid="stSidebar"] {
+    background-color: #002b5c !important;
+    color: white !important;
+}
 
-        /* BARRA LATERAL AZUL */
-        section[data-testid="stSidebar"] {
-            background-color: #002b5c;  /* azul oscuro */
-            color: white;
-        }
-        section[data-testid="stSidebar"] * { color: white !important; }
+/* Forzar color blanco en todos los textos de la sidebar */
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
 
-        /* BOTONES BARRA LATERAL */
-        section[data-testid="stSidebar"] .stButton>button {
-            background-color: #005baa !important;  /* azul botones */
-            color: white !important;
-            border-radius: 8px;
-            height: 45px;
-            font-weight: bold;
-        }
-        section[data-testid="stSidebar"] .stButton>button:hover {
-            background-color: #003f7d !important;
-        }
+/* BOTONES DE LA SIDEBAR */
+section[data-testid="stSidebar"] .stButton>button {
+    background-color: #005baa !important;
+    color: white !important;
+    border-radius: 8px;
+    height: 45px;
+    font-weight: bold;
+}
 
-        /* BOTÓN EXCEL EN BARRA LATERAL */
-        section[data-testid="stSidebar"] div.stDownloadButton > button {
-            background-color: #005baa !important;
-            color: white !important;
-        }
-        section[data-testid="stSidebar"] div.stDownloadButton > button:hover {
-            background-color: #003f7d !important;
-        }
+/* HOVER BOTONES SIDEBAR */
+section[data-testid="stSidebar"] .stButton>button:hover {
+    background-color: #003f7d !important;
+}
 
-        /* BOTONES CENTRALES (usuario) */
-        .usuario-button button {
-            background-color: #d3d3d3 !important;  /* gris */
-            color: black !important;
-            font-weight: bold;
-            border-radius: 8px;
-            height: 45px;
-        }
-        .usuario-button button:hover {
-            background-color: #b0b0b0 !important;
-        }
+/* BOTONES EXCEL DESCARGA EN SIDEBAR */
+section[data-testid="stSidebar"] div.stDownloadButton > button {
+    background-color: #005baa !important;
+    color: white !important;
+}
 
-        .stTextInput>div>div>input { border-radius: 8px; }
-    </style>
+section[data-testid="stSidebar"] div.stDownloadButton > button:hover {
+    background-color: #003f7d !important;
+}
+
+/* BOTONES USUARIO (CENTRO) GRIS */
+div.usuario-button button {
+    background-color: #d3d3d3 !important;
+    color: black !important;
+    font-weight: bold;
+    border-radius: 8px;
+    height: 45px;
+}
+
+div.usuario-button button:hover {
+    background-color: #b0b0b0 !important;
+}
+
+/* INPUTS */
+.stTextInput>div>div>input { border-radius: 8px; }
+</style>
 """, unsafe_allow_html=True)
 
 # --- CARPETAS ---
@@ -228,7 +235,7 @@ else:
             for a in archivos:
                 st.write(f"📄 {a.name}")
 
-        # BOTÓN USUARIO con estilo gris
+        # BOTÓN USUARIO gris
         st.markdown('<div class="usuario-button">', unsafe_allow_html=True)
         if st.button("Enviar al Ingeniero", key="btn_usuario"):
             if archivos:
