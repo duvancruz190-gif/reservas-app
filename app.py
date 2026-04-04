@@ -56,50 +56,57 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- ESTILO ---
+# --- 🎨 ESTILO UNIFICADO ---
 st.markdown("""
     <style>
-        .stApp { background-color: #f5f7fa; }
-
-        .stButton>button {
-            background-color: #005baa;
-            color: white;
-            border-radius: 8px;
-            height: 45px;
-            font-weight: bold;
+        /* FONDO GENERAL */
+        .stApp {
+            background-color: #002b5c;
         }
-
-        .stButton>button:hover { background-color: #003f7d; }
-
-        .stTextInput>div>div>input { border-radius: 8px; }
 
         /* SIDEBAR */
         section[data-testid="stSidebar"] {
             background-color: #002b5c;
-            color: white;
         }
 
         section[data-testid="stSidebar"] * {
             color: white !important;
         }
 
+        /* BOTONES (TODOS IGUALES) */
+        .stButton>button,
+        div.stDownloadButton > button {
+            background-color: #005baa !important;
+            color: white !important;
+            border-radius: 8px;
+            height: 45px;
+            font-weight: bold;
+            border: none;
+        }
+
+        /* SIN CAMBIO DE COLOR EN HOVER */
+        .stButton>button:hover,
+        div.stDownloadButton > button:hover {
+            background-color: #005baa !important;
+        }
+
         /* EXPANDER */
         .streamlit-expanderHeader {
-            background-color: #004080 !important;
+            background-color: #002b5c !important;
             color: white !important;
             border-radius: 6px;
         }
 
         .streamlit-expanderContent {
-            background-color: #003366 !important;
+            background-color: #002b5c !important;
             border-radius: 6px;
-            padding: 10px;
         }
 
         /* SELECTBOX */
         div[data-baseweb="select"] > div {
-            background-color: #004080 !important;
+            background-color: #002b5c !important;
             color: white !important;
+            border: 1px solid #005baa !important;
             border-radius: 8px;
         }
 
@@ -109,17 +116,21 @@ st.markdown("""
 
         div[data-baseweb="select"] input {
             color: white !important;
+            background-color: #002b5c !important;
         }
 
-        /* BOTÓN EXCEL */
-        div.stDownloadButton > button {
-            background-color: #007bff !important;
+        /* MENÚ */
+        ul[role="listbox"] {
+            background-color: #002b5c !important;
+        }
+
+        li[role="option"] {
+            background-color: #002b5c !important;
             color: white !important;
-            border-radius: 8px;
         }
 
-        div.stDownloadButton > button:hover {
-            background-color: #0056b3 !important;
+        li[role="option"]:hover {
+            background-color: #005baa !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -189,7 +200,6 @@ else:
         st.write(f"👤 {st.session_state.user_name}")
         st.write(f"🔑 {st.session_state.rol}")
 
-        # 🔥 HISTORIAL INTERACTIVO
         with st.expander("📜 Historial de Envíos"):
 
             if st.session_state.historial:
@@ -204,12 +214,7 @@ else:
                     ]
 
                 excel = generar_excel(historial_filtrado)
-                st.download_button(
-                    label="📥 Descargar Excel",
-                    data=excel,
-                    file_name="historial_envios.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+                st.download_button("📥 Descargar Excel", excel, "historial.xlsx")
 
                 if st.button("🗑️ Borrar historial"):
                     st.session_state.historial = []
@@ -221,18 +226,13 @@ else:
                         for nombre in h["archivos"]:
                             st.write(f"📄 {nombre}")
 
-            else:
-                st.caption("Sin registros")
-
         if st.button("🚪 Cerrar Sesión"):
             st.session_state.clear()
             st.rerun()
 
     st.title("📋 Gestión de Reservas")
-    rol = st.session_state.rol
 
-    # ================= USUARIO =================
-    if rol == "usuario":
+    if st.session_state.rol == "usuario":
 
         st.header("📤 Enviar Nueva Reserva")
 
@@ -246,12 +246,8 @@ else:
             "Subir PDF(s)",
             type=["pdf"],
             accept_multiple_files=True,
-            key=f"uploader_{st.session_state.refresh}"
+            key=f"up_{st.session_state.refresh}"
         )
-
-        if archivos:
-            for a in archivos:
-                st.write(f"📄 {a.name}")
 
         if st.button("Enviar al Ingeniero"):
             if archivos:
@@ -268,8 +264,7 @@ else:
 
                 cantidad = len(archivos)
 
-                mensaje = "✅ 1 archivo enviado correctamente" if cantidad == 1 else f"✅ {cantidad} archivos enviados correctamente"
-                st.session_state.mensaje_envio = mensaje
+                st.session_state.mensaje_envio = f"✅ {cantidad} archivo(s) enviado(s)"
 
                 nuevo = {
                     "area": area,
@@ -285,4 +280,4 @@ else:
                 st.rerun()
 
             else:
-                st.warning("Sube al menos un archivo")
+                st.warning("Sube archivo")
