@@ -4,15 +4,16 @@ import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
-import time
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
-# --- ESTILO ---
+# --- ESTILO EMPRESARIAL ---
 st.markdown("""
     <style>
-        .stApp { background-color: #f5f7fa; }
+        .stApp {
+            background-color: #f5f7fa;
+        }
 
         .stButton>button {
             background-color: #005baa;
@@ -27,7 +28,9 @@ st.markdown("""
             color: white;
         }
 
-        .stTextInput>div>div>input { border-radius: 8px; }
+        .stTextInput>div>div>input {
+            border-radius: 8px;
+        }
 
         section[data-testid="stSidebar"] {
             background-color: #002b5c;
@@ -40,7 +43,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CARPETAS ---
+# --- CREAR CARPETAS ---
 for carpeta in [
     "reservas/pendientes",
     "reservas/firmadas",
@@ -79,6 +82,7 @@ if not st.session_state.login:
     col1, col2, col3 = st.columns([1,2,1])
 
     with col2:
+
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png")
 
@@ -104,7 +108,9 @@ if not st.session_state.login:
 # ===========================
 else:
 
+    # --- SIDEBAR ---
     with st.sidebar:
+
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png", width=180)
 
@@ -130,51 +136,19 @@ else:
         st.header("📤 Enviar Nueva Reserva")
 
         area = st.selectbox("Selecciona el área", areas)
-
-        # 🔥 KEY DINÁMICA PARA LIMPIAR
-        if "upload_key" not in st.session_state:
-            st.session_state.upload_key = 0
-
-        archivos = st.file_uploader(
-            "Subir PDF(s)",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key=st.session_state.upload_key
-        )
+        arch = st.file_uploader("Subir PDF", type=["pdf"])
 
         if st.button("Enviar al Ingeniero"):
-            if archivos:
-
+            if arch:
                 carpeta_area = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta_area, exist_ok=True)
 
-                enviados = 0
+                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
+                    f.write(arch.getbuffer())
 
-                for arch in archivos:
-                    try:
-                        nombre_unico = f"{int(time.time()*1000)}_{arch.name}"
-
-                        with open(f"{carpeta_area}/{nombre_unico}", "wb") as f:
-                            f.write(arch.getbuffer())
-
-                        enviados += 1
-
-                    except Exception as e:
-                        st.error(f"Error con {arch.name}: {e}")
-
-                if enviados == 1:
-                    st.success(f"✅ 1 archivo enviado con éxito al ingeniero de {area}")
-                elif enviados > 1:
-                    st.success(f"✅ {enviados} archivos enviados con éxito al ingeniero de {area}")
-                else:
-                    st.warning("No se pudo enviar ningún archivo.")
-
-                # 🔥 LIMPIAR UPLOADER
-                st.session_state.upload_key += 1
-                st.rerun()
-
+                st.success(f"✅ Documento enviado a {area}.")
             else:
-                st.warning("Selecciona al menos un archivo.")
+                st.warning("Selecciona un archivo.")
 
     # ===========================
     # INGENIERO
@@ -202,14 +176,6 @@ else:
             with st.expander(f"📄 {arc}"):
 
                 ruta_full = f"{carpeta_area}/{arc}"
-
-                # 🔥 BOTÓN ELIMINAR
-                col_del1, col_del2 = st.columns([5,1])
-                col_del1.write("")
-                if col_del2.button("🗑️ Eliminar", key=f"del_ing_{arc}"):
-                    os.remove(ruta_full)
-                    st.warning(f"Archivo {arc} eliminado")
-                    st.rerun()
 
                 st.write("### Vista previa")
                 try:
@@ -240,7 +206,40 @@ else:
 
                                 if coincidencias:
                                     ref = coincidencias[0]
-                                    rect_firma = fitz.Rect(ref.x0, ref.y0 - 80, ref.x1, ref.y0)
+                                    lineas_validas = []
+
+                                    for d in pagina.get_drawings():
+                                        for item in d["items"]:
+                                            if item[0] == "l":
+                                                x1, y1 = item[1]
+                                                x2, y2 = item[2]
+
+                                                if abs(y1 - y2) < 2:
+                                                    if y1 < ref.y0 and abs(y1 - ref.y0) < 80:
+                                                        lineas_validas.append((x1, y1, x2, y2))
+
+                                    if lineas_validas:
+                                        x1, y1, x2, y2 = sorted(
+                                            lineas_validas,
+                                            key=lambda x: abs(x[1] - ref.y0)
+                                        )[0]
+
+                                        alto = (x2 - x1) * 0.22
+
+                                        rect_firma = fitz.Rect(
+                                            x1,
+                                            y1 - alto - 2,
+                                            x2,
+                                            y1 - 2
+                                        )
+                                    else:
+                                        x_centro = (ref.x0 + ref.x1) / 2
+                                        rect_firma = fitz.Rect(
+                                            x_centro - 120,
+                                            ref.y0 - 100,
+                                            x_centro + 120,
+                                            ref.y0 - 10
+                                        )
                                 else:
                                     rect_firma = fitz.Rect(200, 700, 450, 800)
 
@@ -275,6 +274,13 @@ else:
 
         st.header("📦 Gestión de Documentos")
 
+        colA, colB = st.columns([5,1])
+        with colA:
+            st.subheader("📂 Archivos")
+        with colB:
+            if st.button("🔄 Actualizar"):
+                st.rerun()
+
         estado_file = "reservas/firmadas/estado.json"
 
         if os.path.exists(estado_file):
@@ -291,10 +297,12 @@ else:
 
         archivos = os.listdir(carpeta_area)
 
-        busqueda = st.text_input("🔍 Buscar")
+        busqueda = st.text_input("🔍 Buscar por número o nombre")
 
         if busqueda:
             archivos = [f for f in archivos if busqueda.lower() in f.lower()]
+
+        st.write(f"📄 Resultados: {len(archivos)}")
 
         if not archivos:
             st.info("No hay documentos aquí.")
