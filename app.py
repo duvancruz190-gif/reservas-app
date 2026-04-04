@@ -113,7 +113,14 @@ else:
         st.header("📤 Enviar Nueva Reserva")
 
         area = st.selectbox("Área", areas)
-        archivos = st.file_uploader("Subir PDF(s)", type=["pdf"], accept_multiple_files=True)
+
+        # 🔄 uploader con reset automático
+        archivos = st.file_uploader(
+            "Subir PDF(s)",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key=f"uploader_{st.session_state.refresh}"
+        )
 
         if archivos:
             for a in archivos:
@@ -129,7 +136,13 @@ else:
                     with open(f"{carpeta}/{nombre}", "wb") as f:
                         f.write(arch.getbuffer())
 
-                st.success(f"{len(archivos)} archivo(s) enviados")
+                cantidad = len(archivos)
+                st.success(f"✅ Envío exitoso: {cantidad} archivo(s) enviado(s) a firma")
+
+                # 🔄 limpiar uploader
+                st.session_state.refresh += 1
+                st.rerun()
+
             else:
                 st.warning("Sube al menos un archivo")
 
