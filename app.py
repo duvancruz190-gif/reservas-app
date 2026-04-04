@@ -154,8 +154,9 @@ else:
 
                 st.success(f"✅ Se enviaron con éxito {enviados} archivo(s).")
                 
-                # Limpiar los archivos subidos después de enviarlos
-                archivos.clear()
+                # REINICIAR LA APP PARA QUE EL UPLOADER SE LIMPIE
+                st.experimental_rerun()
+
             else:
                 st.warning("Selecciona al menos un archivo.")
 
