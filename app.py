@@ -47,86 +47,58 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- 🎨 INTERFAZ PROFESIONAL (CSS CON OSWALD Y SVG) ---
+# --- 🎨 ESTILO PROFESIONAL (FONDO BLANCO + TIPOGRAFÍA OSWALD) ---
 st.markdown("""
     <style>
-        /* Importar Tipografía Profesional */
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
 
-        /* FONDO BLANCO Y FUENTE GENERAL */
+        /* FONDO BLANCO */
         .stApp {
             background-color: #FFFFFF;
         }
-        
-        * {
-            font-family: 'Inter', sans-serif;
-        }
 
-        /* TÍTULOS CON OSWALD */
-        h1, h2, h3, [data-testid="stHeader"] {
+        /* TÍTULOS PROFESIONALES */
+        h1, h2, h3 {
             font-family: 'Oswald', sans-serif !important;
-            text-transform: uppercase;
-            letter-spacing: -0.5px;
             color: #333333 !important;
+            text-transform: uppercase;
         }
 
-        /* SIDEBAR PROFESIONAL */
+        /* SIDEBAR GRIS SUAVE */
         section[data-testid="stSidebar"] {
             background-color: #F8F9FA !important;
             border-right: 1px solid #E0E0E0;
         }
 
-        /* BOTONES ESTILO ETERNIT */
+        /* BOTONES ETERNIT */
         .stButton>button, div.stDownloadButton > button {
             background-color: #FFFFFF !important;
             color: #333333 !important;
             border: 1px solid #DCDCDC !important;
-            border-radius: 4px !important;
+            border-radius: 6px !important;
             font-weight: 600 !important;
-            text-transform: uppercase;
             transition: all 0.3s ease;
-            height: 45px;
-            width: 100%;
         }
 
-        .stButton>button:hover, div.stDownloadButton > button:hover {
+        .stButton>button:hover {
             border-color: #E30613 !important;
             color: #E30613 !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
 
-        /* BOTÓN DE ACCIÓN (ENVIAR) */
-        button[kind="primary"] {
-            background-color: #E30613 !important;
-            color: white !important;
-            border: none !important;
-        }
-
-        /* LOGO ALTA DEFINICIÓN */
-        .logo-container {
-            display: flex;
-            justify-content: center;
-            padding: 10px 0;
-        }
-        
-        /* EXPANDER PERSONALIZADO */
-        .streamlit-expanderHeader {
-            background-color: white !important;
-            border-radius: 4px !important;
-            border: 1px solid #E0E0E0 !important;
-        }
-        
-        /* DIVISOR ROJO */
-        .rojo-line {
-            border-top: 4px solid #E30613;
+        /* LÍNEA DE ACENTO ROJO */
+        .divider-red {
+            height: 4px;
+            background-color: #E30613;
             margin-bottom: 20px;
+            border-radius: 2px;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# --- CARPETAS SISTEMA ---
-for carpeta in ["reservas/pendientes", "reservas/firmas", "assets"]:
+# --- CARPETAS ---
+for carpeta in ["reservas/pendientes", "assets"]:
     os.makedirs(carpeta, exist_ok=True)
 
 areas = ["Producción", "Calidad", "Mantenimiento", "Logística", "Recursos Humanos", "Financiera", "Almacén"]
@@ -140,11 +112,13 @@ if "login" not in st.session_state:
     st.session_state.login = False
 
 if not st.session_state.login:
-    col1, col2, col3 = st.columns([1,1.2,1])
+    col1, col2, col3 = st.columns([1,1.5,1])
     with col2:
         st.write("") 
-        # Logo SVG de Eternit para que no se pixele
-        st.image("https://eternit.com.co/sites/default/files/LOGO-ETERNIT-COLOR.svg", use_container_width=True)
+        # Usamos tu archivo local para que no falle
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png", use_container_width=True)
+        
         st.markdown("<h2 style='text-align: center;'>ACCESO PRIVADO</h2>", unsafe_allow_html=True)
         
         u = st.text_input("Usuario")
@@ -159,12 +133,12 @@ if not st.session_state.login:
             else:
                 st.error("Credenciales incorrectas")
 
-# ================= SISTEMA PRINCIPAL =================
+# ================= PANEL PRINCIPAL =================
 else:
     with st.sidebar:
-        # Logo en Sidebar (SVG)
-        st.image("https://eternit.com.co/sites/default/files/LOGO-ETERNIT-COLOR.svg", width=150)
-        st.markdown("<div class='rojo-line'></div>", unsafe_allow_html=True)
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png", width=160)
+        st.markdown("<div class='divider-red'></div>", unsafe_allow_html=True)
         
         st.write(f"👤 **Usuario:** {st.session_state.user_name}")
         st.write(f"🔑 **Rol:** {st.session_state.rol}")
@@ -176,21 +150,21 @@ else:
                 hist_f = st.session_state.historial if area_f == "Todas" else [h for h in st.session_state.historial if h["area"] == area_f]
                 
                 excel = generar_excel(hist_f)
-                st.download_button("📥 DESCARGAR EXCEL", excel, "reporte_eternit.xlsx")
+                st.download_button("📥 DESCARGAR REPORTE", excel, "reporte_eternit.xlsx", use_container_width=True)
                 
                 for h in reversed(hist_f):
                     st.caption(f"📅 {h['fecha']}")
-                    st.markdown(f"**{h['area']}** - {h['cantidad']} Archivos")
+                    st.write(f"📍 {h['area']} ({h['cantidad']} Docs)")
             else:
-                st.info("No hay registros.")
+                st.info("No hay envíos registrados.")
 
-        if st.button("🚪 CERRAR SESIÓN"):
+        if st.button("🚪 CERRAR SESIÓN", use_container_width=True):
             st.session_state.clear()
             st.rerun()
 
-    # --- CUERPO ---
-    st.markdown(f"<h1>Panel de Gestión <span style='color:#E30613'>Eternit</span></h1>", unsafe_allow_html=True)
-    st.markdown("<div class='rojo-line'></div>", unsafe_allow_html=True)
+    # --- CONTENIDO ---
+    st.markdown("<h1>Panel de Gestión <span style='color:#E30613'>Eternit</span></h1>", unsafe_allow_html=True)
+    st.markdown("<div class='divider-red'></div>", unsafe_allow_html=True)
 
     if st.session_state.rol == "usuario":
         st.subheader("📥 Carga de Nueva Reserva")
@@ -201,34 +175,30 @@ else:
 
         c1, c2 = st.columns(2)
         with c1:
-            area_sel = st.selectbox("Seleccione el Área Destino", areas)
+            area_sel = st.selectbox("Área Destino", areas)
         with c2:
-            archivos = st.file_uploader("Documentos PDF", type=["pdf"], accept_multiple_files=True, key=f"up_{st.session_state.refresh}")
+            archivos = st.file_uploader("Subir PDF(s)", type=["pdf"], accept_multiple_files=True, key=f"up_{st.session_state.refresh}")
 
-        # Botón de envío resaltado
-        if st.button("🚀 ENVIAR AL INGENIERO", use_container_width=True, type="primary"):
+        if st.button("🚀 ENVIAR AL INGENIERO", use_container_width=True):
             if archivos:
                 path = f"reservas/pendientes/{area_sel}"
                 os.makedirs(path, exist_ok=True)
-                nombres = []
+                nombres = [a.name for a in archivos]
 
                 for a in archivos:
                     fname = f"{int(time.time())}_{a.name}"
-                    nombres.append(a.name)
                     with open(f"{path}/{fname}", "wb") as f:
                         f.write(a.getbuffer())
 
-                st.session_state.mensaje_envio = f"✅ Envío exitoso a {area_sel}."
+                st.session_state.mensaje_envio = f"✅ ¡Enviado con éxito!"
                 
                 nuevo = {
-                    "area": area_sel,
-                    "cantidad": len(archivos),
-                    "archivos": nombres,
-                    "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
+                    "area": area_sel, "cantidad": len(archivos),
+                    "archivos": nombres, "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
                 }
                 st.session_state.historial.append(nuevo)
                 guardar_historial(st.session_state.historial)
                 st.session_state.refresh += 1
                 st.rerun()
             else:
-                st.warning("Adjunte archivos PDF primero.")
+                st.warning("Por favor suba un archivo.")
