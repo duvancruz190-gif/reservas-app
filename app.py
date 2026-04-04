@@ -112,17 +112,17 @@ else:
     rol = st.session_state.get('rol')
 
     # ===========================
-    # USUARIO
+    # USUARIO - MÓDULO PROFESIONAL
     # ===========================
     if rol == "usuario":
 
-        # --- SIDEBAR ---
+        # --- SIDEBAR PROFESIONAL ---
         with st.sidebar:
             if os.path.exists("assets/ETERNITTTTT.png"):
                 st.image("assets/ETERNITTTTT.png", width=180)
 
-            st.markdown("### 📜 Historial de Envios")
-            st.write(f"👤 *{st.session_state.get('user_name')}*")
+            st.markdown("### 📜 Historial de Reservas Enviadas")
+            st.write(f"👤 Usuario: *{st.session_state.get('user_name')}*")
             st.write(f"🔑 Rol: *{st.session_state.get('rol').upper()}*")
             st.markdown("---")
 
@@ -134,19 +134,29 @@ else:
             else:
                 historial = []
 
+            # Filtros
             filtro_area = st.selectbox("Filtrar por área", ["Todas"] + areas)
             busqueda_nombre = st.text_input("Buscar por nombre de archivo")
 
-            filtrados = []
-            for item in historial:
-                if (filtro_area == "Todas" or item["area"] == filtro_area) and (busqueda_nombre.lower() in item["nombre"].lower()):
-                    filtrados.append(item)
+            # Filtrar historial
+            filtrados = [
+                item for item in historial
+                if (filtro_area == "Todas" or item["area"] == filtro_area)
+                and (busqueda_nombre.lower() in item["nombre"].lower())
+            ]
 
-            st.write(f"📄 Resultados: {len(filtrados)}")
-            for item in filtrados:
-                st.write(f"💛 {item['nombre']} ({item['area']})")
+            # Mostrar historial con diseño profesional
+            st.markdown("#### 🔹 Resultados")
+            if filtrados:
+                for item in filtrados:
+                    st.markdown(
+                        f"<div style='background-color:#003f7d;padding:8px;border-radius:6px;margin-bottom:4px;'>"
+                        f"<b>{item['nombre']}</b> <span style='color:#f5f7fa'>({item['area']})</span>"
+                        f"</div>", unsafe_allow_html=True)
+            else:
+                st.info("No hay documentos para mostrar.")
 
-            # Botón para eliminar historial filtrado
+            # Botones profesionales
             if st.button("🗑️ Eliminar historial mostrado", key="del_historial"):
                 historial = [item for item in historial if item not in filtrados]
                 with open(historial_file, "w") as f:
@@ -154,19 +164,23 @@ else:
                 st.success("✅ Historial eliminado correctamente")
                 st.experimental_rerun()
 
-            # Botón cerrar sesión (mismo estilo)
             if st.button("🚪 Cerrar Sesión", key="cerrar_usuario"):
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
                 st.rerun()
 
-        # --- CUERPO PRINCIPAL ---
-        st.header("📤 Enviar Nueva Reserva (Masiva)")
+        # --- CUERPO PRINCIPAL PROFESIONAL ---
+        st.title("📤 Enviar Nueva Reserva (Masiva)")
+
+        st.markdown(
+            "<p style='color:#003f7d;font-weight:bold;'>Seleccione un área y los archivos PDF que desea enviar al ingeniero.</p>",
+            unsafe_allow_html=True
+        )
 
         area = st.selectbox("Selecciona el área", areas)
         archivos = st.file_uploader("Subir PDFs", type=["pdf"], accept_multiple_files=True)
 
-        if st.button("Enviar al Ingeniero"):
+        if st.button("📤 Enviar al Ingeniero"):
             if archivos:
                 carpeta_area = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta_area, exist_ok=True)
@@ -191,8 +205,10 @@ else:
                     historial.append({"nombre": arch.name, "area": area})
                 with open(historial_file, "w") as f:
                     json.dump(historial, f)
+
+                st.info("Puede consultar su historial en la barra lateral izquierda.")
             else:
-                st.warning("Selecciona al menos un archivo.")
+                st.warning("⚠️ Seleccione al menos un archivo PDF.")
 
     # ===========================
     # INGENIERO
