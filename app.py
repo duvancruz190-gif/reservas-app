@@ -41,73 +41,69 @@ if "refresh" not in st.session_state: st.session_state.refresh = 0
 if "mensaje_envio" not in st.session_state: st.session_state.mensaje_envio = ""
 if "historial" not in st.session_state: st.session_state.historial = cargar_historial()
 
-# --- 🎨 ESTILO EXACTO A TU IMAGEN (PROFESIONAL) ---
+# --- 🎨 ESTILO EXACTO A LA CAPTURA ---
 st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-
-        /* FONDO BLANCO PURO */
+        /* FONDO BLANCO */
         .stApp {
             background-color: #FFFFFF;
         }
 
-        /* TIPOGRAFÍA GENERAL */
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* TÍTULOS LOGIN */
+        /* FUENTE Y TEXTOS LOGIN */
         .login-title {
-            color: #2C3E50;
+            color: #2e3b4e;
             font-size: 32px;
             font-weight: 600;
             text-align: center;
-            margin-top: 20px;
+            margin-top: 15px;
             margin-bottom: 5px;
         }
         
         .login-subtitle {
-            color: #95A5A6;
+            color: #8c98a4;
             font-size: 14px;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
-        /* INPUTS GRISES COMO EN TU IMAGEN */
+        /* LABELS (USUARIO / CONTRASEÑA) */
+        label {
+            font-size: 14px !important;
+            color: #4a5568 !important;
+            font-weight: 500 !important;
+        }
+
+        /* INPUTS GRIS CLARO (IGUAL A LA IMAGEN) */
         div[data-baseweb="input"] {
             background-color: #F0F2F6 !important;
             border: none !important;
             border-radius: 8px !important;
+            padding: 2px 0px;
         }
 
-        /* BOTÓN AZUL (IGUAL A TU IMAGEN) */
+        /* BOTÓN AZUL (COLOR EXACTO) */
         .stButton>button {
-            background-color: #005CAA !important;
+            background-color: #005baa !important;
             color: white !important;
             border-radius: 8px !important;
             border: none !important;
-            height: 45px;
-            font-weight: 600;
+            height: 48px;
+            font-weight: 500;
+            font-size: 16px;
             width: 100%;
-            transition: 0.3s;
+            margin-top: 10px;
+            transition: background-color 0.3s;
         }
 
         .stButton>button:hover {
             background-color: #004485 !important;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            color: white !important;
         }
 
         /* SIDEBAR PROFESIONAL */
         section[data-testid="stSidebar"] {
             background-color: #F8F9FA !important;
             border-right: 1px solid #E0E0E0;
-        }
-
-        /* LÍNEA DE ACENTO ETERNIT */
-        .line-accent {
-            height: 3px;
-            background: linear-gradient(to right, #E30613, #333);
-            margin-bottom: 20px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -123,8 +119,10 @@ if "login" not in st.session_state:
     st.session_state.login = False
 
 if not st.session_state.login:
-    col1, col2, col3 = st.columns([1,1.5,1])
-    with col2:
+    # Centrado del login
+    _, col_login, _ = st.columns([1, 1.8, 1])
+    
+    with col_login:
         st.write("") 
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png", use_container_width=True)
@@ -135,7 +133,6 @@ if not st.session_state.login:
         u = st.text_input("Usuario")
         p = st.text_input("Contraseña", type="password")
 
-        st.write("")
         if st.button("Ingresar", use_container_width=True):
             if u in usuarios and usuarios[u]["password"] == p:
                 st.session_state.login = True
@@ -145,28 +142,21 @@ if not st.session_state.login:
             else:
                 st.error("Credenciales incorrectas")
 
-# ================= PANEL PRINCIPAL =================
+# ================= PANEL INTERNO =================
 else:
     with st.sidebar:
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png", width=160)
-        st.markdown("<div class='line-accent'></div>", unsafe_allow_html=True)
-        
+        st.markdown("---")
         st.write(f"👤 **Usuario:** {st.session_state.user_name}")
         st.write(f"🔑 **Rol:** {st.session_state.rol}")
         
-        st.markdown("---")
-        with st.expander("📜 HISTORIAL DE ENVÍOS"):
+        with st.expander("📜 HISTORIAL"):
             if st.session_state.historial:
-                area_f = st.selectbox("Filtrar Área", ["Todas"] + areas)
-                hist_f = st.session_state.historial if area_f == "Todas" else [h for h in st.session_state.historial if h["area"] == area_f]
-                
-                excel = generar_excel(hist_f)
-                st.download_button("📥 DESCARGAR REPORTE", excel, "reporte_eternit.xlsx")
-                
-                for h in reversed(hist_f):
-                    st.caption(f"📅 {h['fecha']}")
-                    st.write(f"📍 {h['area']} ({h['cantidad']} Docs)")
+                excel = generar_excel(st.session_state.historial)
+                st.download_button("📥 EXPORTAR EXCEL", excel, "reporte.xlsx")
+                for h in reversed(st.session_state.historial):
+                    st.caption(f"{h['fecha']} - {h['area']}")
             else:
                 st.info("Sin registros.")
 
@@ -175,8 +165,8 @@ else:
             st.rerun()
 
     # --- CUERPO ---
-    st.markdown(f"<h1>Panel de Gestión <span style='color:#E30613'>Eternit</span></h1>", unsafe_allow_html=True)
-    st.markdown("<div class='line-accent'></div>", unsafe_allow_html=True)
+    st.markdown(f"<h2>Panel de Gestión <span style='color:#E30613'>Eternit</span></h2>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-top: 2px solid #eee;'>", unsafe_allow_html=True)
 
     if st.session_state.rol == "usuario":
         st.subheader("Carga de Nueva Reserva")
@@ -185,11 +175,8 @@ else:
             st.success(st.session_state.mensaje_envio)
             st.session_state.mensaje_envio = ""
 
-        c1, c2 = st.columns(2)
-        with c1:
-            area_sel = st.selectbox("Área Destino", areas)
-        with c2:
-            archivos = st.file_uploader("Documentos PDF", type=["pdf"], accept_multiple_files=True, key=f"up_{st.session_state.refresh}")
+        area_sel = st.selectbox("Área Destino", areas)
+        archivos = st.file_uploader("Documentos PDF", type=["pdf"], accept_multiple_files=True, key=f"up_{st.session_state.refresh}")
 
         if st.button("Enviar al Ingeniero"):
             if archivos:
@@ -199,7 +186,7 @@ else:
                     with open(f"{path}/{int(time.time())}_{a.name}", "wb") as f:
                         f.write(a.getbuffer())
 
-                st.session_state.mensaje_envio = f"✅ ¡Enviado con éxito!"
+                st.session_state.mensaje_envio = "✅ ¡Enviado con éxito!"
                 nuevo = {
                     "area": area_sel, "cantidad": len(archivos),
                     "archivos": [a.name for a in archivos], "fecha": datetime.now().strftime("%d/%m/%Y %H:%M")
