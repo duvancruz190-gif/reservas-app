@@ -4,8 +4,6 @@ import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
-import pandas as pd
-from datetime import datetime
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
@@ -100,7 +98,9 @@ if not st.session_state.login:
 # ===========================
 else:
 
+    # --- SIDEBAR ---
     with st.sidebar:
+
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png", width=180)
 
@@ -108,6 +108,13 @@ else:
         st.write(f"👤 **{st.session_state.get('user_name')}**")
         st.write(f"🔑 Rol: **{st.session_state.get('rol').upper()}**")
 
+        st.markdown("---")
+
+        # BOTÓN HISTORIAL
+        if st.button("📄 Historial"):
+            st.session_state.ver_historial = True
+
+        # CERRAR SESIÓN
         if st.button("🚪 Cerrar Sesión"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
@@ -117,7 +124,7 @@ else:
     rol = st.session_state.get('rol')
 
     # ===========================
-    # USUARIO
+    # USUARIO (MEJORADO 🔥)
     # ===========================
     if rol == "usuario":
 
@@ -125,10 +132,15 @@ else:
 
         area = st.selectbox("Selecciona el área", areas)
 
+        # 🔥 clave para limpiar uploader
+        if "upload_key" not in st.session_state:
+            st.session_state.upload_key = 0
+
         archivos = st.file_uploader(
             "Subir PDFs",
             type=["pdf"],
-            accept_multiple_files=True
+            accept_multiple_files=True,
+            key=st.session_state.upload_key
         )
 
         if st.button("Enviar al Ingeniero"):
@@ -138,86 +150,111 @@ else:
                 carpeta_area = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta_area, exist_ok=True)
 
-                enviados = []
-                registros = []
-
                 for arch in archivos:
-                    ruta = f"{carpeta_area}/{arch.name}"
-
-                    with open(ruta, "wb") as f:
+                    with open(f"{carpeta_area}/{arch.name}", "wb") as f:
                         f.write(arch.getbuffer())
 
-                    enviados.append(arch.name)
+                st.success(f"✅ {len(archivos)} archivos enviados con éxito")
 
-                    registros.append({
-                        "usuario": st.session_state.user_name,
-                        "area": area,
-                        "archivo": arch.name,
-                        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
-
-                excel_file = "reservas/historial_envios.xlsx"
-
-                df_nuevo = pd.DataFrame(registros)
-
-                if os.path.exists(excel_file):
-                    df_existente = pd.read_excel(excel_file)
-                    df_total = pd.concat([df_existente, df_nuevo], ignore_index=True)
-                else:
-                    df_total = df_nuevo
-
-                df_total.to_excel(excel_file, index=False)
-
-                st.success(f"✅ {len(enviados)} archivos enviados con éxito")
+                # 🔥 limpiar uploader
+                st.session_state.upload_key += 1
+                st.rerun()
 
             else:
                 st.warning("Selecciona al menos un archivo")
 
-        # --- HISTORIAL SIDEBAR ---
-        st.sidebar.markdown("### 📄 Mis envíos")
+        # ===========================
+        # HISTORIAL
+        # ===========================
+        if "ver_historial" not in st.session_state:
+            st.session_state.ver_historial = False
 
-        historial = []
+        if st.session_state.ver_historial:
 
-        for area_loop in areas:
-            carpeta = f"reservas/pendientes/{area_loop}"
-            if os.path.exists(carpeta):
-                for f in os.listdir(carpeta):
-                    historial.append((area_loop, f))
+            st.subheader("📄 Historial de envíos")
 
-        if not historial:
-            st.sidebar.info("No has enviado archivos")
+            area_hist = st.selectbox("Selecciona el área", areas, key="hist_area")
 
-        for area_h, file_h in historial:
-            col1, col2 = st.sidebar.columns([3,1])
-            col1.write(f"📄 {file_h} ({area_h})")
+            carpeta_hist = f"reservas/pendientes/{area_hist}"
+            os.makedirs(carpeta_hist, exist_ok=True)
 
-            if col2.button("🗑️", key=f"del_{area_h}_{file_h}"):
-                ruta = f"reservas/pendientes/{area_h}/{file_h}"
-                if os.path.exists(ruta):
-                    os.remove(ruta)
+            archivos_hist = os.listdir(carpeta_hist)
+
+            if not archivos_hist:
+                st.info("No hay archivos en esta área")
+
+            for file_h in archivos_hist:
+
+                col1, col2 = st.columns([5,1])
+                col1.write(f"📄 {file_h}")
+
+                if col2.button("🗑️", key=f"del_{area_hist}_{file_h}"):
+                    os.remove(f"{carpeta_hist}/{file_h}")
                     st.rerun()
 
-        # --- DESCARGAR EXCEL ---
-        excel_path = "reservas/historial_envios.xlsx"
-
-        if os.path.exists(excel_path):
-            with open(excel_path, "rb") as f:
-                st.sidebar.download_button(
-                    "⬇️ Descargar historial",
-                    f,
-                    file_name="historial_envios.xlsx"
-                )
-
     # ===========================
-    # INGENIERO (igual que el tuyo)
+    # INGENIERO (TU CÓDIGO ORIGINAL)
     # ===========================
     elif rol == "ingeniero":
-        st.header("✍️ Revisión y Firma")
-        st.info("Aquí va tu lógica original (no se modificó)")
 
-    # ===========================
-    # ALMACÉN (igual que el tuyo)
-    # ===========================
-    elif rol == "almacen":
-        st.header("📦 Gestión de Documentos")
-        st.info("Aquí va tu lógica original (no se modificó)")
+        st.header("✍️ Revisión y Firma")
+
+        colA, colB = st.columns([5,1])
+        with colA:
+            st.subheader("📂 Documentos pendientes")
+        with colB:
+            if st.button("🔄 Actualizar"):
+                st.rerun()
+
+        area = st.selectbox("Selecciona el área", areas)
+        carpeta_area = f"reservas/pendientes/{area}"
+        pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+
+        if not pendientes:
+            st.info("No hay documentos pendientes en esta área.")
+
+        for arc in pendientes:
+
+            with st.expander(f"📄 {arc}"):
+
+                ruta_full = f"{carpeta_area}/{arc}"
+
+                st.write("### Vista previa")
+                try:
+                    pdf_viewer(ruta_full, width=1000, height=800)
+                except:
+                    with open(ruta_full, "rb") as f:
+                        st.download_button("Descargar PDF", f, file_name=arc)
+
+                st.write("---")
+
+                contra_firma = st.text_input("Contraseña de firma", type="password", key=f"pw_{arc}")
+
+                if st.button("🖋️ Firmar y enviar", key=f"btn_{arc}"):
+
+                    if area in firmas_contrasena:
+
+                        info_firma = firmas_contrasena[area]
+
+                        if contra_firma == info_firma["password"]:
+
+                            if os.path.exists(info_firma["archivo"]):
+
+                                doc = fitz.open(ruta_full)
+                                pagina = doc[0]
+
+                                pagina.insert_image(
+                                    fitz.Rect(200, 700, 450, 800),
+                                    filename=info_firma["archivo"]
+                                )
+
+                                carpeta_firmadas = f"reservas/firmadas/{area}"
+                                os.makedirs(carpeta_firmadas, exist_ok=True)
+
+                                doc.save(f"{carpeta_firmadas}/{arc}")
+                                doc.close()
+
+                                os.remove(ruta_full)
+
+                                st.success("✅ Firmado correctamente")
+                                st.rerun()
