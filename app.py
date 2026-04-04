@@ -1,203 +1,249 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eternit - Gestión Profesional</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+import streamlit as st 
+import os
+import fitz  # PyMuPDF
+from streamlit_pdf_viewer import pdf_viewer
+import json
+import shutil
+import time
+from datetime import datetime
+import pandas as pd
+from io import BytesIO
+
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="Gestión de Reservas", layout="wide")
+
+# --- ARCHIVO HISTORIAL ---
+HISTORIAL_FILE = "reservas/historial.json"
+
+def cargar_historial():
+    if os.path.exists(HISTORIAL_FILE):
+        with open(HISTORIAL_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def guardar_historial(data):
+    with open(HISTORIAL_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def generar_excel(historial):
+    datos = []
+    for h in historial:
+        for archivo in h["archivos"]:
+            datos.append({
+                "Fecha": h["fecha"],
+                "Área": h["area"],
+                "Archivo": archivo,
+                "Cantidad": 1,
+                "Total envío": h["cantidad"]
+            })
+    df = pd.DataFrame(datos)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Historial')
+    return output.getvalue()
+
+# --- ESTADOS ---
+if "refresh" not in st.session_state:
+    st.session_state.refresh = 0
+if "mensaje_envio" not in st.session_state:
+    st.session_state.mensaje_envio = ""
+if "historial" not in st.session_state:
+    st.session_state.historial = cargar_historial()
+
+# --- 🎨 ESTILO PROFESIONAL ---
+st.markdown("""
     <style>
-        :root {
-            --color-rojo: #E30613;
-            --color-rojo-dark: #b3050f;
-            --color-fondo: #f8fafc;
-            --color-tarjeta: #ffffff;
-            --color-texto-p: #1e293b;
-            --color-texto-s: #64748b;
-            --borde-suave: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        /* FONDO GENERAL */
+        .stApp {
+            background-color: #f8f8f8;  /* Gris muy claro para profesional */
+            color: #333333;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--color-fondo);
-            color: var(--color-texto-p);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
+        /* SIDEBAR */
+        section[data-testid="stSidebar"] {
+            background-color: #ffffff;  /* Blanco */
+            color: #333333;
         }
 
-        .container {
-            max-width: 1100px;
-            width: 90%;
-            margin: 60px 0;
+        section[data-testid="stSidebar"] * {
+            color: #333333 !important;
         }
 
-        /* --- HEADER PROFESIONAL --- */
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 50px;
-            padding-bottom: 25px;
-            border-bottom: 1px solid var(--borde-suave);
-        }
-
-        .brand-box {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo-eternit {
-            height: 45px; /* Logo nítido */
-        }
-
-        h1 {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin: 0;
-        }
-
-        h1 span {
-            color: var(--color-rojo);
-        }
-
-        /* --- GRID DE ACCIONES --- */
-        .grid-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 25px;
-        }
-
-        .btn-card {
-            background-color: var(--color-tarjeta);
-            border: 1px solid var(--borde-suave);
-            border-radius: 12px;
-            padding: 30px;
-            text-decoration: none;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* Alineación moderna a la izquierda */
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: var(--shadow);
-        }
-
-        .btn-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--color-rojo);
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-        }
-
-        .icon-box {
-            width: 48px;
-            height: 48px;
-            background-color: #fef2f2;
-            color: var(--color-rojo);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            transition: background-color 0.3s;
-        }
-
-        .btn-card:hover .icon-box {
-            background-color: var(--color-rojo);
-            color: white;
-        }
-
-        .btn-card span {
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--color-texto-p);
-            margin-bottom: 8px;
-        }
-
-        .btn-card p {
-            font-size: 13px;
-            color: var(--color-texto-s);
-            margin: 0;
-            line-height: 1.5;
-        }
-
-        /* --- BOTÓN DE ACCIÓN DESTACADO --- */
-        .btn-card.featured {
-            background-color: var(--color-rojo);
+        /* BOTONES */
+        .stButton>button,
+        div.stDownloadButton > button {
+            background-color: #d21b28 !important; /* Rojo corporativo Eternit */
+            color: white !important;
+            border-radius: 8px;
+            height: 45px;
+            font-weight: bold;
             border: none;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        .stButton>button:hover,
+        div.stDownloadButton > button:hover {
+            background-color: #a31620 !important; /* Rojo más oscuro al pasar el mouse */
+            transform: translateY(-1px);
         }
 
-        .btn-card.featured .icon-box {
-            background-color: rgba(255,255,255,0.2);
-            color: white;
+        /* EXPANDER */
+        .streamlit-expanderHeader {
+            background-color: #f0f0f0 !important;
+            color: #333333 !important;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .streamlit-expanderContent {
+            background-color: #ffffff !important;
+            border-radius: 6px;
         }
 
-        .btn-card.featured span, .btn-card.featured p {
-            color: white;
+        /* SELECTBOX */
+        div[data-baseweb="select"] > div {
+            background-color: #ffffff !important;
+            color: #333333 !important;
+            border: 1px solid #d21b28 !important;
+            border-radius: 8px;
+        }
+        div[data-baseweb="select"] span,
+        div[data-baseweb="select"] input {
+            color: #333333 !important;
         }
 
-        .btn-card.featured:hover {
-            background-color: var(--color-rojo-dark);
+        /* MENÚ LISTBOX */
+        ul[role="listbox"] {
+            background-color: #ffffff !important;
+        }
+        li[role="option"] {
+            background-color: #ffffff !important;
+            color: #333333 !important;
+        }
+        li[role="option"]:hover {
+            background-color: #d21b28 !important;
+            color: white !important;
         }
 
-        /* --- FOOTER --- */
-        footer {
-            margin-top: 80px;
-            text-align: center;
-            color: var(--color-texto-s);
-            font-size: 13px;
+        /* TITULOS */
+        h1, h2, h3, h4, h5, h6 {
+            color: #333333;
         }
+
     </style>
-</head>
-<body>
+""", unsafe_allow_html=True)
 
-    <div class="container">
-        <header>
-            <div class="brand-box">
-                <img src="https://eternit.com.co/sites/default/files/LOGO-ETERNIT-COLOR.svg" alt="Eternit Logo" class="logo-eternit">
-                <h1>Gestión <span>Eternit</span></h1>
-            </div>
-            <div style="color: var(--color-texto-s); font-size: 14px; font-weight: 500;">
-                Bienvenido, Administrador
-            </div>
-        </header>
+# --- CARPETAS ---
+for carpeta in [
+    "reservas/pendientes",
+    "reservas/firmadas",
+    "reservas/firmas",
+    "reservas/archivo",
+    "assets"
+]:
+    os.makedirs(carpeta, exist_ok=True)
 
-        <div class="grid-buttons">
-            <a href="#" class="btn-card">
-                <div class="icon-box"><i data-lucide="bar-chart-3"></i></div>
-                <span>REPORTES</span>
-                <p>Visualiza el rendimiento y estadísticas mensuales de proyectos.</p>
-            </a>
+# --- ÁREAS ---
+areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
+         "Recursos Humanos", "Ambiental", "Salud Ocupacional",
+         "Marketing", "Financiera", "Almacén"]
 
-            <a href="#" class="btn-card">
-                <div class="icon-box"><i data-lucide="package"></i></div>
-                <span>INVENTARIO</span>
-                <p>Control de existencias y pedidos de materiales en tiempo real.</p>
-            </a>
+# --- USUARIOS ---
+usuarios = {
+    "usuario": {"password": "123", "rol": "usuario"},
+    "ingeniero": {"password": "999", "rol": "ingeniero"},
+    "almacen": {"password": "000", "rol": "almacen"}
+}
 
-            <a href="#" class="btn-card featured">
-                <div class="icon-box"><i data-lucide="plus-circle"></i></div>
-                <span>NUEVO PROYECTO</span>
-                <p>Inicia una nueva orden de trabajo con parámetros técnicos.</p>
-            </a>
+# --- FIRMAS ---
+firmas_contrasena = {
+    "Producción": {"archivo": "reservas/firmas/Imagen1.png", "password": "1234"},
+    "Logística": {"archivo": "reservas/firmas/LogisticaRojas.png", "password": "5678"},
+}
 
-            <a href="#" class="btn-card">
-                <div class="icon-box"><i data-lucide="wrench"></i></div>
-                <span>SOPORTE TÉCNICO</span>
-                <p>Asistencia especializada para incidencias en obra.</p>
-            </a>
-        </div>
+# --- LOGIN ---
+if "login" not in st.session_state:
+    st.session_state.login = False
 
-        <footer>
-            © 2026 Eternit Colombia · Sistema Central de Operaciones · <strong>Calidad Profesional</strong>
-        </footer>
-    </div>
+if not st.session_state.login:
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png")
+        st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+        st.caption("Gestión de Reservas - Eternit Colombiana")
+        u = st.text_input("Usuario")
+        p = st.text_input("Contraseña", type="password")
+        if st.button("Ingresar", use_container_width=True):
+            if u in usuarios and usuarios[u]["password"] == p:
+                st.session_state.login = True
+                st.session_state.rol = usuarios[u]["rol"]
+                st.session_state.user_name = u
+                st.rerun()
+            else:
+                st.error("Credenciales incorrectas")
 
-    <script>
-        // Inicializa los iconos de Lucide
-        lucide.createIcons();
-    </script>
-</body>
-</html>
+# ================= SISTEMA =================
+else:
+    with st.sidebar:
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png", width=180)
+        st.write(f"👤 {st.session_state.user_name}")
+        st.write(f"🔑 {st.session_state.rol}")
+
+        with st.expander("📜 Historial de Envíos"):
+            if st.session_state.historial:
+                area_filtro = st.selectbox("Filtrar por área", ["Todas"] + areas)
+                historial_filtrado = st.session_state.historial if area_filtro=="Todas" else [h for h in st.session_state.historial if h["area"]==area_filtro]
+                excel = generar_excel(historial_filtrado)
+                st.download_button("📥 Descargar Excel", excel, "historial.xlsx")
+                if st.button("🗑️ Borrar historial"):
+                    st.session_state.historial = []
+                    guardar_historial([])
+                    st.rerun()
+                for h in reversed(historial_filtrado):
+                    with st.expander(f"{h['fecha']} - {h['area']} ({h['cantidad']})"):
+                        for nombre in h["archivos"]:
+                            st.write(f"📄 {nombre}")
+
+        if st.button("🚪 Cerrar Sesión"):
+            st.session_state.clear()
+            st.rerun()
+
+    st.title("📋 Gestión de Reservas")
+
+    if st.session_state.rol == "usuario":
+        st.header("📤 Enviar Nueva Reserva")
+        if st.session_state.mensaje_envio:
+            st.success(st.session_state.mensaje_envio)
+            st.session_state.mensaje_envio = ""
+        area = st.selectbox("Área", areas)
+        archivos = st.file_uploader(
+            "Subir PDF(s)",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key=f"up_{st.session_state.refresh}"
+        )
+        if st.button("Enviar al Ingeniero"):
+            if archivos:
+                carpeta = f"reservas/pendientes/{area}"
+                os.makedirs(carpeta, exist_ok=True)
+                nombres = []
+                for arch in archivos:
+                    nombre = f"{int(time.time())}_{arch.name}"
+                    nombres.append(arch.name)
+                    with open(f"{carpeta}/{nombre}", "wb") as f:
+                        f.write(arch.getbuffer())
+                cantidad = len(archivos)
+                st.session_state.mensaje_envio = f"✅ {cantidad} archivo(s) enviado(s)"
+                nuevo = {
+                    "area": area,
+                    "cantidad": cantidad,
+                    "archivos": nombres,
+                    "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                st.session_state.historial.append(nuevo)
+                guardar_historial(st.session_state.historial)
+                st.session_state.refresh += 1
+                st.rerun()
+            else:
+                st.warning("Sube archivo")
