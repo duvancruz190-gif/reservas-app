@@ -46,7 +46,7 @@ def generar_excel(historial):
 
     return output.getvalue()
 
-# --- REFRESH FIX ---
+# --- ESTADOS ---
 if "refresh" not in st.session_state:
     st.session_state.refresh = 0
 
@@ -56,7 +56,7 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- ESTILO EMPRESARIAL ---
+# --- ESTILO ---
 st.markdown("""
     <style>
         .stApp { background-color: #f5f7fa; }
@@ -80,18 +80,14 @@ st.markdown("""
 
         section[data-testid="stSidebar"] * { color: white !important; }
 
-        /* 🔥 SOLO ESTO ES LO NUEVO (botón Excel) */
+        /* Botón Excel */
         div.stDownloadButton > button {
             background-color: #005baa !important;
             color: white !important;
-            border-radius: 8px;
-            height: 45px;
-            font-weight: bold;
         }
 
         div.stDownloadButton > button:hover {
             background-color: #003f7d !important;
-            color: white !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -124,11 +120,10 @@ firmas_contrasena = {
     "Logística": {"archivo": "reservas/firmas/LogisticaRojas.png", "password": "5678"},
 }
 
-# --- SESIÓN ---
+# --- LOGIN ---
 if "login" not in st.session_state:
     st.session_state.login = False
 
-# ================= LOGIN =================
 if not st.session_state.login:
 
     col1, col2, col3 = st.columns([1,2,1])
@@ -162,30 +157,40 @@ else:
         st.write(f"👤 {st.session_state.user_name}")
         st.write(f"🔑 {st.session_state.rol}")
 
-        st.markdown("### 📜 Historial de Envíos")
+        # 🔥 HISTORIAL INTERACTIVO
+        with st.expander("📜 Historial de Envíos"):
 
-        if st.session_state.historial:
+            if st.session_state.historial:
 
-            excel = generar_excel(st.session_state.historial)
-            st.download_button(
-                label="📥 Descargar Excel",
-                data=excel,
-                file_name="historial_envios.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+                area_filtro = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
-            if st.button("🗑️ Borrar historial"):
-                st.session_state.historial = []
-                guardar_historial([])
-                st.rerun()
+                if area_filtro == "Todas":
+                    historial_filtrado = st.session_state.historial
+                else:
+                    historial_filtrado = [
+                        h for h in st.session_state.historial if h["area"] == area_filtro
+                    ]
 
-            for h in reversed(st.session_state.historial[-5:]):
-                with st.expander(f"{h['area']} ({h['cantidad']})"):
-                    st.caption(h["fecha"])
-                    for nombre in h["archivos"]:
-                        st.write(f"📄 {nombre}")
-        else:
-            st.caption("Sin registros")
+                excel = generar_excel(historial_filtrado)
+                st.download_button(
+                    label="📥 Descargar Excel",
+                    data=excel,
+                    file_name="historial_envios.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+                if st.button("🗑️ Borrar historial"):
+                    st.session_state.historial = []
+                    guardar_historial([])
+                    st.rerun()
+
+                for h in reversed(historial_filtrado):
+                    with st.expander(f"{h['fecha']} - {h['area']} ({h['cantidad']})"):
+                        for nombre in h["archivos"]:
+                            st.write(f"📄 {nombre}")
+
+            else:
+                st.caption("Sin registros")
 
         if st.button("🚪 Cerrar Sesión"):
             st.session_state.clear()
