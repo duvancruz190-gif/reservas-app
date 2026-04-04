@@ -56,11 +56,12 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- ESTILO ---
+# --- ESTILO GENERAL ---
 st.markdown("""
     <style>
         .stApp { background-color: #f5f7fa; }
 
+        /* Estilo general botones */
         .stButton>button {
             background-color: #005baa;
             color: white;
@@ -68,7 +69,6 @@ st.markdown("""
             height: 45px;
             font-weight: bold;
         }
-
         .stButton>button:hover { background-color: #003f7d; }
 
         .stTextInput>div>div>input { border-radius: 8px; }
@@ -77,7 +77,6 @@ st.markdown("""
             background-color: #002b5c;
             color: white;
         }
-
         section[data-testid="stSidebar"] * { color: white !important; }
 
         /* Botón Excel */
@@ -85,9 +84,20 @@ st.markdown("""
             background-color: #005baa !important;
             color: white !important;
         }
-
         div.stDownloadButton > button:hover {
             background-color: #003f7d !important;
+        }
+
+        /* --- BOTONES USUARIO --- */
+        div.usuario-button button {
+            background-color: #d3d3d3 !important;  /* gris */
+            color: black !important;               /* letra negra */
+            font-weight: bold;
+            border-radius: 8px;
+            height: 45px;
+        }
+        div.usuario-button button:hover {
+            background-color: #b0b0b0 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -221,7 +231,8 @@ else:
             for a in archivos:
                 st.write(f"📄 {a.name}")
 
-        if st.button("Enviar al Ingeniero"):
+        # BOTÓN USUARIO con estilo gris
+        if st.button("Enviar al Ingeniero", key="btn_usuario"):
             if archivos:
                 carpeta = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta, exist_ok=True)
