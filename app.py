@@ -77,7 +77,7 @@ section[data-testid="stSidebar"] div.stDownloadButton>button:hover {
 
 /* BOTONES USUARIO (CENTRO) GRIS */
 div.usuario-button button {
-    background-color: #d3d3d3 !important;
+    background-color: #d3d3d3 !important; /* gris profesional */
     color: black !important;
     font-weight: bold;
     border-radius: 8px;
@@ -199,7 +199,7 @@ else:
         if archivos:
             for a in archivos:
                 st.write(f"📄 {a.name}")
-        # BOTÓN USUARIO gris
+        # BOTÓN USUARIO gris con letra negra
         st.markdown('<div class="usuario-button">', unsafe_allow_html=True)
         if st.button("Enviar al Ingeniero", key="btn_usuario"):
             if archivos:
