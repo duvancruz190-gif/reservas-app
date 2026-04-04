@@ -47,12 +47,12 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- ESTILO COMPLETO ---
+# --- ESTILO PROFESIONAL ---
 st.markdown("""
 <style>
-/* BARRA LATERAL COMPLETA AZUL */
+/* BARRA LATERAL PROFESIONAL */
 section[data-testid="stSidebar"] {
-    background-color: #002b5c !important;
+    background-color: #1f2c56 !important; /* azul oscuro elegante */
     color: white !important;
 }
 section[data-testid="stSidebar"] * {
@@ -62,7 +62,7 @@ section[data-testid="stSidebar"] * {
 /* TODOS LOS BOTONES DE LA SIDEBAR, INCLUYENDO HISTORIAL Y DESCARGAS */
 section[data-testid="stSidebar"] .stButton>button,
 section[data-testid="stSidebar"] div.stDownloadButton>button {
-    background-color: #005baa !important;
+    background-color: #3a4a78 !important; /* botón azul elegante */
     color: white !important;
     border-radius: 8px;
     height: 45px;
@@ -72,7 +72,7 @@ section[data-testid="stSidebar"] div.stDownloadButton>button {
 /* HOVER BOTONES SIDEBAR */
 section[data-testid="stSidebar"] .stButton>button:hover,
 section[data-testid="stSidebar"] div.stDownloadButton>button:hover {
-    background-color: #003f7d !important;
+    background-color: #2a3a6b !important;
 }
 
 /* BOTONES USUARIO (CENTRO) GRIS */
