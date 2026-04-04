@@ -55,35 +55,41 @@ st.markdown("""
     <style>
         /* FONDO GENERAL */
         .stApp {
-            background-color: #f8f8f8;  /* Gris muy claro para profesional */
+            background-color: #f8f8f8;
             color: #333333;
         }
 
         /* SIDEBAR */
         section[data-testid="stSidebar"] {
-            background-color: #ffffff;  /* Blanco */
+            background-color: #ffffff;
             color: #333333;
         }
-
         section[data-testid="stSidebar"] * {
             color: #333333 !important;
+        }
+
+        /* LOGO */
+        img {
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
         }
 
         /* BOTONES */
         .stButton>button,
         div.stDownloadButton > button {
-            background-color: #d21b28 !important; /* Rojo corporativo Eternit */
-            color: white !important;
+            background-color: #d21b28 !important; /* rojo corporativo Eternit */
+            color: white !important; /* texto blanco */
             border-radius: 8px;
             height: 45px;
             font-weight: bold;
-            border: none;
+            border: 2px solid #b51724;
             box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
             transition: all 0.2s ease;
         }
         .stButton>button:hover,
         div.stDownloadButton > button:hover {
-            background-color: #a31620 !important; /* Rojo más oscuro al pasar el mouse */
+            background-color: #b51724 !important; /* rojo más oscuro al hover */
             transform: translateY(-1px);
         }
 
@@ -168,7 +174,7 @@ if not st.session_state.login:
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         if os.path.exists("assets/ETERNITTTTT.png"):
-            st.image("assets/ETERNITTTTT.png")
+            st.image("assets/ETERNITTTTT.png", width=250)  # logo más grande y nítido
         st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
         st.caption("Gestión de Reservas - Eternit Colombiana")
         u = st.text_input("Usuario")
@@ -186,7 +192,7 @@ if not st.session_state.login:
 else:
     with st.sidebar:
         if os.path.exists("assets/ETERNITTTTT.png"):
-            st.image("assets/ETERNITTTTT.png", width=180)
+            st.image("assets/ETERNITTTTT.png", width=200)  # tamaño consistente en sidebar
         st.write(f"👤 {st.session_state.user_name}")
         st.write(f"🔑 {st.session_state.rol}")
 
