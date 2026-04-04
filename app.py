@@ -131,7 +131,16 @@ else:
 
         area = st.selectbox("Selecciona el área", areas)
 
-        archivos = st.file_uploader("Subir PDF(s)", type=["pdf"], accept_multiple_files=True)
+        # 🔥 KEY DINÁMICA PARA LIMPIAR
+        if "upload_key" not in st.session_state:
+            st.session_state.upload_key = 0
+
+        archivos = st.file_uploader(
+            "Subir PDF(s)",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key=st.session_state.upload_key
+        )
 
         if st.button("Enviar al Ingeniero"):
             if archivos:
@@ -160,6 +169,8 @@ else:
                 else:
                     st.warning("No se pudo enviar ningún archivo.")
 
+                # 🔥 LIMPIAR UPLOADER
+                st.session_state.upload_key += 1
                 st.rerun()
 
             else:
@@ -191,6 +202,14 @@ else:
             with st.expander(f"📄 {arc}"):
 
                 ruta_full = f"{carpeta_area}/{arc}"
+
+                # 🔥 BOTÓN ELIMINAR
+                col_del1, col_del2 = st.columns([5,1])
+                col_del1.write("")
+                if col_del2.button("🗑️ Eliminar", key=f"del_ing_{arc}"):
+                    os.remove(ruta_full)
+                    st.warning(f"Archivo {arc} eliminado")
+                    st.rerun()
 
                 st.write("### Vista previa")
                 try:
