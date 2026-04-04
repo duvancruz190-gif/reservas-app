@@ -49,6 +49,7 @@ for carpeta in [
     "reservas/firmadas",
     "reservas/firmas",
     "reservas/archivo",
+    "reservas/historial",
     "assets"
 ]:
     os.makedirs(carpeta, exist_ok=True)
@@ -142,19 +143,30 @@ else:
 
         if st.button("Enviar al Ingeniero"):
             if archivos:
-                enviados = 0
-                carpeta_area = f"reservas/pendientes/{area}"
-                os.makedirs(carpeta_area, exist_ok=True)
+                enviados = []
+                carpeta_pendientes = f"reservas/pendientes/{area}"
+                carpeta_historial = f"reservas/historial/{st.session_state['user_name']}/{area}"
+                os.makedirs(carpeta_pendientes, exist_ok=True)
+                os.makedirs(carpeta_historial, exist_ok=True)
 
                 for arch in archivos:
-                    ruta_guardado = f"{carpeta_area}/{arch.name}"
-                    with open(ruta_guardado, "wb") as f:
-                        f.write(arch.getbuffer())
-                    enviados += 1
+                    ruta_pendiente = f"{carpeta_pendientes}/{arch.name}"
+                    ruta_historial = f"{carpeta_historial}/{arch.name}"
 
-                st.success(f"✅ Se enviaron con éxito {enviados} archivo(s).")
-                
-                # REINICIAR LA APP PARA QUE EL UPLOADER SE LIMPIE
+                    # Guardar en pendientes
+                    with open(ruta_pendiente, "wb") as f:
+                        f.write(arch.getbuffer())
+
+                    # Copiar a historial
+                    shutil.copy(ruta_pendiente, ruta_historial)
+
+                    enviados.append(arch.name)
+
+                st.success(f"✅ Se enviaron con éxito {len(enviados)} archivo(s):")
+                for e in enviados:
+                    st.write(f"- {e}")
+
+                # LIMPIAR EL UPLOADER
                 st.experimental_rerun()
 
             else:
