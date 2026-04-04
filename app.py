@@ -171,6 +171,18 @@ else:
         if not pendientes:
             st.info("No hay documentos pendientes en esta área.")
 
+        # --- BOTÓN ELIMINAR TODOS ---
+        if pendientes:
+            st.markdown("---")
+            st.warning("⚠️ Esta acción eliminará **todas** las reservas pendientes de esta área.")
+            if st.button("🗑️ Eliminar todas las reservas pendientes"):
+                for arc in pendientes:
+                    ruta_full = f"{carpeta_area}/{arc}"
+                    if os.path.exists(ruta_full):
+                        os.remove(ruta_full)
+                st.success("✅ Todas las reservas pendientes han sido eliminadas.")
+                st.rerun()
+
         for arc in pendientes:
 
             with st.expander(f"📄 {arc}"):
