@@ -5,13 +5,55 @@ from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
 import time
+from datetime import datetime
+import pandas as pd
+from io import BytesIO
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
+# --- ARCHIVO HISTORIAL ---
+HISTORIAL_FILE = "reservas/historial.json"
+
+def cargar_historial():
+    if os.path.exists(HISTORIAL_FILE):
+        with open(HISTORIAL_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def guardar_historial(data):
+    with open(HISTORIAL_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def generar_excel(historial):
+    datos = []
+
+    for h in historial:
+        for archivo in h["archivos"]:
+            datos.append({
+                "Fecha": h["fecha"],
+                "Área": h["area"],
+                "Archivo": archivo,
+                "Cantidad en envío": h["cantidad"]
+            })
+
+    df = pd.DataFrame(datos)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Historial')
+
+    return output.getvalue()
+
 # --- REFRESH FIX ---
 if "refresh" not in st.session_state:
     st.session_state.refresh = 0
+
+if "mensaje_envio" not in st.session_state:
+    st.session_state.mensaje_envio = ""
+
+if "historial" not in st.session_state:
+    st.session_state.historial = cargar_historial()
 
 # --- ESTILO EMPRESARIAL ---
 st.markdown("""
@@ -112,9 +154,12 @@ else:
 
         st.header("📤 Enviar Nueva Reserva")
 
+        if st.session_state.mensaje_envio:
+            st.success(st.session_state.mensaje_envio)
+            st.session_state.mensaje_envio = ""
+
         area = st.selectbox("Área", areas)
 
-        # 🔄 uploader con reset automático
         archivos = st.file_uploader(
             "Subir PDF(s)",
             type=["pdf"],
@@ -131,151 +176,59 @@ else:
                 carpeta = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta, exist_ok=True)
 
+                nombres = []
+
                 for arch in archivos:
                     nombre = f"{int(time.time())}_{arch.name}"
+                    nombres.append(arch.name)
                     with open(f"{carpeta}/{nombre}", "wb") as f:
                         f.write(arch.getbuffer())
 
                 cantidad = len(archivos)
-                st.success(f"✅ Envío exitoso: {cantidad} archivo(s) enviado(s) a firma")
 
-                # 🔄 limpiar uploader
+                mensaje = "✅ 1 archivo enviado correctamente" if cantidad == 1 else f"✅ {cantidad} archivos enviados correctamente"
+                st.session_state.mensaje_envio = mensaje
+
+                nuevo = {
+                    "area": area,
+                    "cantidad": cantidad,
+                    "archivos": nombres,
+                    "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+
+                st.session_state.historial.append(nuevo)
+                guardar_historial(st.session_state.historial)
+
                 st.session_state.refresh += 1
                 st.rerun()
 
             else:
                 st.warning("Sube al menos un archivo")
 
-    # ================= INGENIERO =================
-    elif rol == "ingeniero":
+        # HISTORIAL
+        st.subheader("📜 Historial de Envíos")
 
-        st.header("✍️ Firma de Documentos")
+        if st.session_state.historial:
 
-        if st.button("🔄 Actualizar"):
-            st.session_state.refresh += 1
-            st.rerun()
+            # Botón Excel
+            excel = generar_excel(st.session_state.historial)
+            st.download_button(
+                label="📥 Descargar historial en Excel",
+                data=excel,
+                file_name="historial_envios.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-        _ = st.session_state.refresh
-
-        for area in areas:
-
-            carpeta = f"reservas/pendientes/{area}"
-            if not os.path.exists(carpeta):
-                continue
-
-            archivos = os.listdir(carpeta)
-            if not archivos:
-                continue
-
-            st.subheader(f"📂 {area}")
-
-            for arc in archivos:
-
-                ruta = f"{carpeta}/{arc}"
-
-                with st.expander(f"📄 {arc}"):
-
-                    try:
-                        pdf_viewer(ruta, width=900, height=700)
-                    except:
-                        st.warning("No se pudo previsualizar")
-
-                    pw = st.text_input("Contraseña", type="password", key=arc)
-
-                    if st.button("Firmar", key=f"btn_{arc}"):
-
-                        if area in firmas_contrasena and pw == firmas_contrasena[area]["password"]:
-
-                            try:
-                                doc = fitz.open(ruta)
-                            except:
-                                st.error("Error abriendo PDF")
-                                continue
-
-                            pagina_encontrada = None
-                            rect_firma = None
-
-                            for pagina in doc:
-
-                                coinc = pagina.search_for("FIRMA 1")
-
-                                if coinc:
-                                    ref = coinc[0]
-                                    pagina_encontrada = pagina
-
-                                    rect_firma = fitz.Rect(ref.x0, ref.y0-80, ref.x1+120, ref.y0-10)
-                                    break
-
-                            if pagina_encontrada:
-                                pagina_encontrada.insert_image(
-                                    rect_firma,
-                                    filename=firmas_contrasena[area]["archivo"],
-                                    keep_proportion=True
-                                )
-                            else:
-                                doc[-1].insert_image(
-                                    fitz.Rect(200,700,450,800),
-                                    filename=firmas_contrasena[area]["archivo"]
-                                )
-
-                            destino = f"reservas/firmadas/{area}"
-                            os.makedirs(destino, exist_ok=True)
-
-                            doc.save(f"{destino}/{arc}")
-                            doc.close()
-                            os.remove(ruta)
-
-                            st.success("Firmado correctamente")
-                            st.rerun()
-
-                        else:
-                            st.error("Contraseña incorrecta")
-
-    # ================= ALMACÉN =================
-    elif rol == "almacen":
-
-        st.header("📦 Gestión de Documentos")
-
-        if st.button("🔄 Actualizar"):
-            st.session_state.refresh += 1
-            st.rerun()
-
-        _ = st.session_state.refresh
-
-        vista = st.radio("Vista", ["Firmados", "Archivados"])
-        area = st.selectbox("Área", ["Todas"] + areas)
-
-        base = "reservas/firmadas" if vista == "Firmados" else "reservas/archivo"
-
-        archivos = []
-
-        if area == "Todas":
-            for a in areas:
-                carpeta = f"{base}/{a}"
-                if os.path.exists(carpeta):
-                    for f in os.listdir(carpeta):
-                        archivos.append((a, f))
-        else:
-            carpeta = f"{base}/{area}"
-            os.makedirs(carpeta, exist_ok=True)
-            for f in os.listdir(carpeta):
-                archivos.append((area, f))
-
-        st.write(f"Total: {len(archivos)}")
-
-        for a, f_name in archivos:
-
-            ruta = f"{base}/{a}/{f_name}"
-
-            col1, col2, col3 = st.columns([4,1,1])
-
-            col1.write(f"[{a}] {f_name}")
-
-            with open(ruta, "rb") as file:
-                col2.download_button("⬇️", file, file_name=f_name)
-
-            if col3.button("📁", key=ruta):
-                destino = f"reservas/archivo/{a}"
-                os.makedirs(destino, exist_ok=True)
-                shutil.move(ruta, f"{destino}/{f_name}")
+            # Botón borrar
+            if st.button("🗑️ Borrar historial"):
+                st.session_state.historial = []
+                guardar_historial([])
+                st.success("Historial borrado")
                 st.rerun()
+
+            for h in reversed(st.session_state.historial):
+                with st.expander(f"{h['fecha']} - {h['area']} ({h['cantidad']} archivos)"):
+                    for nombre in h["archivos"]:
+                        st.write(f"📄 {nombre}")
+        else:
+            st.info("No hay envíos registrados")
