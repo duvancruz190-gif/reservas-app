@@ -1,6 +1,6 @@
 import streamlit as st 
 import os
-import fitz
+import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
@@ -25,7 +25,6 @@ def guardar_historial(data):
     with open(HISTORIAL_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-# --- EXCEL ---
 def generar_excel(historial):
     datos = []
 
@@ -47,7 +46,7 @@ def generar_excel(historial):
 
     return output.getvalue()
 
-# --- ESTADOS ---
+# --- REFRESH FIX ---
 if "refresh" not in st.session_state:
     st.session_state.refresh = 0
 
@@ -57,7 +56,7 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- ESTILO ---
+# --- ESTILO EMPRESARIAL ---
 st.markdown("""
     <style>
         .stApp { background-color: #f5f7fa; }
@@ -70,7 +69,18 @@ st.markdown("""
             font-weight: bold;
         }
 
-        /* BOTÓN EXCEL */
+        .stButton>button:hover { background-color: #003f7d; }
+
+        .stTextInput>div>div>input { border-radius: 8px; }
+
+        section[data-testid="stSidebar"] {
+            background-color: #002b5c;
+            color: white;
+        }
+
+        section[data-testid="stSidebar"] * { color: white !important; }
+
+        /* 🔥 SOLO ESTO ES LO NUEVO (botón Excel) */
         div.stDownloadButton > button {
             background-color: #005baa !important;
             color: white !important;
@@ -81,6 +91,7 @@ st.markdown("""
 
         div.stDownloadButton > button:hover {
             background-color: #003f7d !important;
+            color: white !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -96,9 +107,9 @@ for carpeta in [
     os.makedirs(carpeta, exist_ok=True)
 
 # --- ÁREAS ---
-areas = ["Producción","Calidad","Mantenimiento","Logística",
-         "Recursos Humanos","Ambiental","Salud Ocupacional",
-         "Marketing","Financiera","Almacén"]
+areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
+         "Recursos Humanos", "Ambiental", "Salud Ocupacional",
+         "Marketing", "Financiera", "Almacén"]
 
 # --- USUARIOS ---
 usuarios = {
@@ -113,39 +124,57 @@ firmas_contrasena = {
     "Logística": {"archivo": "reservas/firmas/LogisticaRojas.png", "password": "5678"},
 }
 
-# --- LOGIN ---
+# --- SESIÓN ---
 if "login" not in st.session_state:
     st.session_state.login = False
 
+# ================= LOGIN =================
 if not st.session_state.login:
 
-    u = st.text_input("Usuario")
-    p = st.text_input("Contraseña", type="password")
+    col1, col2, col3 = st.columns([1,2,1])
 
-    if st.button("Ingresar"):
-        if u in usuarios and usuarios[u]["password"] == p:
-            st.session_state.login = True
-            st.session_state.rol = usuarios[u]["rol"]
-            st.session_state.user_name = u
-            st.rerun()
-        else:
-            st.error("Error")
+    with col2:
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png")
 
+        st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+        st.caption("Gestión de Reservas - Eternit Colombiana")
+
+        u = st.text_input("Usuario")
+        p = st.text_input("Contraseña", type="password")
+
+        if st.button("Ingresar", use_container_width=True):
+            if u in usuarios and usuarios[u]["password"] == p:
+                st.session_state.login = True
+                st.session_state.rol = usuarios[u]["rol"]
+                st.session_state.user_name = u
+                st.rerun()
+            else:
+                st.error("Credenciales incorrectas")
+
+# ================= SISTEMA =================
 else:
 
-    # ===== SIDEBAR =====
     with st.sidebar:
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png", width=180)
+
         st.write(f"👤 {st.session_state.user_name}")
         st.write(f"🔑 {st.session_state.rol}")
 
-        st.markdown("### 📜 Historial")
+        st.markdown("### 📜 Historial de Envíos")
 
         if st.session_state.historial:
 
             excel = generar_excel(st.session_state.historial)
-            st.download_button("📥 Descargar Excel", excel, "historial.xlsx")
+            st.download_button(
+                label="📥 Descargar Excel",
+                data=excel,
+                file_name="historial_envios.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-            if st.button("🗑️ Borrar"):
+            if st.button("🗑️ Borrar historial"):
                 st.session_state.historial = []
                 guardar_historial([])
                 st.rerun()
@@ -155,15 +184,20 @@ else:
                     st.caption(h["fecha"])
                     for nombre in h["archivos"]:
                         st.write(f"📄 {nombre}")
+        else:
+            st.caption("Sin registros")
 
         if st.button("🚪 Cerrar Sesión"):
             st.session_state.clear()
             st.rerun()
 
-    # ===== USUARIO =====
-    if st.session_state.rol == "usuario":
+    st.title("📋 Gestión de Reservas")
+    rol = st.session_state.rol
 
-        st.title("📤 Enviar Reserva")
+    # ================= USUARIO =================
+    if rol == "usuario":
+
+        st.header("📤 Enviar Nueva Reserva")
 
         if st.session_state.mensaje_envio:
             st.success(st.session_state.mensaje_envio)
@@ -172,13 +206,17 @@ else:
         area = st.selectbox("Área", areas)
 
         archivos = st.file_uploader(
-            "PDF",
+            "Subir PDF(s)",
             type=["pdf"],
             accept_multiple_files=True,
-            key=f"up_{st.session_state.refresh}"
+            key=f"uploader_{st.session_state.refresh}"
         )
 
-        if st.button("Enviar"):
+        if archivos:
+            for a in archivos:
+                st.write(f"📄 {a.name}")
+
+        if st.button("Enviar al Ingeniero"):
             if archivos:
                 carpeta = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta, exist_ok=True)
@@ -193,7 +231,7 @@ else:
 
                 cantidad = len(archivos)
 
-                mensaje = "✅ 1 archivo enviado" if cantidad == 1 else f"✅ {cantidad} archivos enviados"
+                mensaje = "✅ 1 archivo enviado correctamente" if cantidad == 1 else f"✅ {cantidad} archivos enviados correctamente"
                 st.session_state.mensaje_envio = mensaje
 
                 nuevo = {
@@ -210,49 +248,4 @@ else:
                 st.rerun()
 
             else:
-                st.warning("Sube archivo")
-
-    # ===== INGENIERO =====
-    elif st.session_state.rol == "ingeniero":
-
-        st.title("✍️ Firmar")
-
-        for area in areas:
-
-            carpeta = f"reservas/pendientes/{area}"
-            if not os.path.exists(carpeta):
-                continue
-
-            archivos = os.listdir(carpeta)
-
-            for arc in archivos:
-
-                ruta = f"{carpeta}/{arc}"
-
-                with st.expander(arc):
-
-                    try:
-                        pdf_viewer(ruta)
-                    except:
-                        pass
-
-                    pw = st.text_input("Clave", key=arc)
-
-                    if st.button("Firmar", key=f"f{arc}"):
-
-                        if area in firmas_contrasena and pw == firmas_contrasena[area]["password"]:
-
-                            doc = fitz.open(ruta)
-                            doc[-1].insert_image(
-                                fitz.Rect(200,700,450,800),
-                                filename=firmas_contrasena[area]["archivo"]
-                            )
-
-                            destino = f"reservas/firmadas/{area}"
-                            os.makedirs(destino, exist_ok=True)
-
-                            doc.save(f"{destino}/{arc}")
-                            doc.close()
-                            os.remove(ruta)
-
-                            st.rerun()
+                st.warning("Sube al menos un archivo")
