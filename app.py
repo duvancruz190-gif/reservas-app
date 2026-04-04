@@ -56,49 +56,52 @@ if "mensaje_envio" not in st.session_state:
 if "historial" not in st.session_state:
     st.session_state.historial = cargar_historial()
 
-# --- ESTILO GENERAL ---
+# --- ESTILO ---
 st.markdown("""
     <style>
         .stApp { background-color: #f5f7fa; }
 
-        /* Estilo general botones */
-        .stButton>button {
-            background-color: #005baa;
-            color: white;
-            border-radius: 8px;
-            height: 45px;
-            font-weight: bold;
-        }
-        .stButton>button:hover { background-color: #003f7d; }
-
-        .stTextInput>div>div>input { border-radius: 8px; }
-
+        /* BARRA LATERAL AZUL */
         section[data-testid="stSidebar"] {
-            background-color: #002b5c;
+            background-color: #002b5c;  /* azul oscuro */
             color: white;
         }
         section[data-testid="stSidebar"] * { color: white !important; }
 
-        /* Botón Excel */
-        div.stDownloadButton > button {
-            background-color: #005baa !important;
+        /* BOTONES BARRA LATERAL */
+        section[data-testid="stSidebar"] .stButton>button {
+            background-color: #005baa !important;  /* azul botones */
             color: white !important;
+            border-radius: 8px;
+            height: 45px;
+            font-weight: bold;
         }
-        div.stDownloadButton > button:hover {
+        section[data-testid="stSidebar"] .stButton>button:hover {
             background-color: #003f7d !important;
         }
 
-        /* --- BOTONES USUARIO --- */
-        div.usuario-button button {
+        /* BOTÓN EXCEL EN BARRA LATERAL */
+        section[data-testid="stSidebar"] div.stDownloadButton > button {
+            background-color: #005baa !important;
+            color: white !important;
+        }
+        section[data-testid="stSidebar"] div.stDownloadButton > button:hover {
+            background-color: #003f7d !important;
+        }
+
+        /* BOTONES CENTRALES (usuario) */
+        .usuario-button button {
             background-color: #d3d3d3 !important;  /* gris */
-            color: black !important;               /* letra negra */
+            color: black !important;
             font-weight: bold;
             border-radius: 8px;
             height: 45px;
         }
-        div.usuario-button button:hover {
+        .usuario-button button:hover {
             background-color: #b0b0b0 !important;
         }
+
+        .stTextInput>div>div>input { border-radius: 8px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -122,12 +125,6 @@ usuarios = {
     "usuario": {"password": "123", "rol": "usuario"},
     "ingeniero": {"password": "999", "rol": "ingeniero"},
     "almacen": {"password": "000", "rol": "almacen"}
-}
-
-# --- FIRMAS ---
-firmas_contrasena = {
-    "Producción": {"archivo": "reservas/firmas/Imagen1.png", "password": "1234"},
-    "Logística": {"archivo": "reservas/firmas/LogisticaRojas.png", "password": "5678"},
 }
 
 # --- LOGIN ---
@@ -167,7 +164,7 @@ else:
         st.write(f"👤 {st.session_state.user_name}")
         st.write(f"🔑 {st.session_state.rol}")
 
-        # 🔥 HISTORIAL INTERACTIVO
+        # HISTORIAL
         with st.expander("📜 Historial de Envíos"):
 
             if st.session_state.historial:
@@ -232,6 +229,7 @@ else:
                 st.write(f"📄 {a.name}")
 
         # BOTÓN USUARIO con estilo gris
+        st.markdown('<div class="usuario-button">', unsafe_allow_html=True)
         if st.button("Enviar al Ingeniero", key="btn_usuario"):
             if archivos:
                 carpeta = f"reservas/pendientes/{area}"
@@ -265,3 +263,4 @@ else:
 
             else:
                 st.warning("Sube al menos un archivo")
+        st.markdown('</div>', unsafe_allow_html=True)
