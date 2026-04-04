@@ -131,7 +131,6 @@ else:
 
         area = st.selectbox("Selecciona el área", areas)
 
-        # 🔥 CAMBIO: múltiples archivos
         archivos = st.file_uploader("Subir PDF(s)", type=["pdf"], accept_multiple_files=True)
 
         if st.button("Enviar al Ingeniero"):
@@ -154,7 +153,6 @@ else:
                     except Exception as e:
                         st.error(f"Error con {arch.name}: {e}")
 
-                # ✅ MENSAJE DINÁMICO
                 if enviados == 1:
                     st.success(f"✅ 1 archivo enviado con éxito al ingeniero de {area}")
                 elif enviados > 1:
@@ -306,4 +304,3 @@ else:
             if col4.button("🗑️", key=f"del_{ruta}"):
                 os.remove(ruta)
                 st.rerun()
-```
