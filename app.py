@@ -35,10 +35,25 @@ st.markdown("""
         section[data-testid="stSidebar"] {
             background-color: #002b5c;
             color: white;
+            padding: 10px;
         }
 
         section[data-testid="stSidebar"] * {
             color: white !important;
+        }
+
+        .sidebar-button button {
+            background-color: #005baa;
+            color: white;
+            border-radius: 8px;
+            height: 40px;
+            font-weight: bold;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-button button:hover {
+            background-color: #003f7d;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -108,47 +123,92 @@ if not st.session_state.login:
 # ===========================
 else:
 
+    rol = st.session_state.get('rol')
+
     # --- SIDEBAR ---
     with st.sidebar:
-
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png", width=180)
-
-        st.markdown("### 📂 Menú Principal")
-        st.write(f"👤 *{st.session_state.get('user_name')}*")
-        st.write(f"🔑 Rol: *{st.session_state.get('rol').upper()}*")
-
-        st.markdown("---")
-
-        if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
-
-    st.title("📋 Gestión de Reservas")
-    rol = st.session_state.get('rol')
 
     # ===========================
     # USUARIO
     # ===========================
     if rol == "usuario":
 
-        st.header("📤 Enviar Nueva Reserva")
+        st.header("📤 Enviar Nueva Reserva (Masiva)")
 
         area = st.selectbox("Selecciona el área", areas)
-        arch = st.file_uploader("Subir PDF", type=["pdf"])
+        archivos = st.file_uploader("Subir PDFs", type=["pdf"], accept_multiple_files=True)
 
         if st.button("Enviar al Ingeniero"):
-            if arch:
+            if archivos:
                 carpeta_area = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta_area, exist_ok=True)
 
-                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
-                    f.write(arch.getbuffer())
+                enviados = 0
+                for arch in archivos:
+                    with open(f"{carpeta_area}/{arch.name}", "wb") as f:
+                        f.write(arch.getbuffer())
+                    enviados += 1
 
-                st.success(f"✅ Documento enviado a {area}.")
+                st.success(f"✅ Se enviaron {enviados} archivo(s) a {area}.")
+
+                # Guardar historial
+                historial_file = "reservas/historial_usuario.json"
+                if os.path.exists(historial_file):
+                    with open(historial_file, "r") as f:
+                        historial = json.load(f)
+                else:
+                    historial = []
+
+                for arch in archivos:
+                    historial.append({"nombre": arch.name, "area": area})
+                with open(historial_file, "w") as f:
+                    json.dump(historial, f)
             else:
-                st.warning("Selecciona un archivo.")
+                st.warning("Selecciona al menos un archivo.")
+
+        st.markdown("---")
+        st.subheader("📂 Historial de envíos")
+
+        # Sidebar historial y botones
+        st.sidebar.markdown("### 📜 Historial de Envios")
+        st.sidebar.write(f"👤 *{st.session_state.get('user_name')}*")
+        st.sidebar.write(f"🔑 Rol: *{st.session_state.get('rol').upper()}*")
+        st.sidebar.markdown("---")
+
+        historial_file = "reservas/historial_usuario.json"
+        if os.path.exists(historial_file):
+            with open(historial_file, "r") as f:
+                historial = json.load(f)
+        else:
+            historial = []
+
+        filtro_area = st.sidebar.selectbox("Filtrar por área", ["Todas"] + areas)
+        busqueda_nombre = st.sidebar.text_input("Buscar por nombre de archivo")
+
+        filtrados = []
+        for item in historial:
+            if (filtro_area == "Todas" or item["area"] == filtro_area) and (busqueda_nombre.lower() in item["nombre"].lower()):
+                filtrados.append(item)
+
+        st.sidebar.write(f"📄 Resultados: {len(filtrados)}")
+        for item in filtrados:
+            st.sidebar.write(f"💛 {item['nombre']} ({item['area']})")
+
+        # Botón para eliminar historial filtrado
+        if st.sidebar.button("🗑️ Eliminar historial mostrado"):
+            historial = [item for item in historial if item not in filtrados]
+            with open(historial_file, "w") as f:
+                json.dump(historial, f)
+            st.sidebar.success("✅ Historial eliminado correctamente")
+            st.experimental_rerun()
+
+        # Botón cerrar sesión
+        if st.sidebar.button("🚪 Cerrar Sesión", key="cerrar_usuario"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
 
     # ===========================
     # INGENIERO
