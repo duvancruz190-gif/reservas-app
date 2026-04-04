@@ -10,30 +10,35 @@ st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
 # --- ESTILO EMPRESARIAL ---
 st.markdown("""
-<style>
-.stApp { background-color: #f5f7fa; }
+    <style>
+        .stApp { background-color: #f5f7fa; }
 
-.stButton>button {
-    background-color: #005baa;
-    color: white;
-    border-radius: 8px;
-    height: 45px;
-    font-weight: bold;
-}
+        .stButton>button {
+            background-color: #005baa;
+            color: white;
+            border-radius: 8px;
+            height: 45px;
+            font-weight: bold;
+        }
 
-.stButton>button:hover {
-    background-color: #003f7d;
-    color: white;
-}
+        .stButton>button:hover {
+            background-color: #003f7d;
+            color: white;
+        }
 
-section[data-testid="stSidebar"] {
-    background-color: #002b5c;
-}
+        .stTextInput>div>div>input {
+            border-radius: 8px;
+        }
 
-section[data-testid="stSidebar"] * {
-    color: white !important;
-}
-</style>
+        section[data-testid="stSidebar"] {
+            background-color: #002b5c;
+            color: white;
+        }
+
+        section[data-testid="stSidebar"] * {
+            color: white !important;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
 # --- CARPETAS ---
@@ -42,8 +47,8 @@ for carpeta in [
     "reservas/firmadas",
     "reservas/firmas",
     "reservas/archivo",
-    "reservas/enviados",
-    "reservas/rechazados",
+    "reservas/enviados",   # historial seguro
+    "reservas/rechazados", # rechazados
     "assets"
 ]:
     os.makedirs(carpeta, exist_ok=True)
@@ -69,6 +74,10 @@ firmas_contrasena = {
 if "login" not in st.session_state:
     st.session_state.login = False
 
+if "pagina" not in st.session_state:
+    st.session_state.pagina = "principal"
+
+# ================= LOGIN =================
 if not st.session_state.login:
 
     col1, col2, col3 = st.columns([1,2,1])
@@ -91,6 +100,7 @@ if not st.session_state.login:
             else:
                 st.error("Credenciales incorrectas")
 
+# ================= SISTEMA =================
 else:
 
     # --- SIDEBAR ---
@@ -102,6 +112,12 @@ else:
         st.markdown("### 📂 Menú Principal")
         st.write(f"👤 **{st.session_state.get('user_name')}**")
         st.write(f"🔑 Rol: **{st.session_state.get('rol').upper()}**")
+
+        st.markdown("---")
+
+        if st.button("📄 Historial"):
+            st.session_state.pagina = "historial"
+            st.rerun()
 
         st.markdown("---")
 
@@ -118,57 +134,100 @@ else:
     # ===========================
     if rol == "usuario":
 
-        st.header("📤 Enviar Nueva Reserva")
+        # -------- ENVÍO --------
+        if st.session_state.pagina == "principal":
 
-        area = st.selectbox("Selecciona el área", areas)
+            st.header("📤 Enviar Nueva Reserva")
 
-        archivos = st.file_uploader("Subir PDF", type=["pdf"], accept_multiple_files=True)
+            area = st.selectbox("Selecciona el área", areas)
 
-        if st.button("Enviar al Ingeniero"):
-            if archivos:
+            if "upload_key" not in st.session_state:
+                st.session_state.upload_key = 0
 
-                carpeta_pend = f"reservas/pendientes/{area}"
-                carpeta_hist = f"reservas/enviados/{area}"
+            archivos = st.file_uploader(
+                "Subir PDF",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key=st.session_state.upload_key
+            )
 
-                os.makedirs(carpeta_pend, exist_ok=True)
-                os.makedirs(carpeta_hist, exist_ok=True)
+            if st.button("Enviar al Ingeniero"):
+                if archivos:
 
-                for arch in archivos:
-                    data = arch.getbuffer()
+                    carpeta_pend = f"reservas/pendientes/{area}"
+                    carpeta_hist = f"reservas/enviados/{area}"
 
-                    # flujo real
-                    with open(f"{carpeta_pend}/{arch.name}", "wb") as f:
-                        f.write(data)
+                    os.makedirs(carpeta_pend, exist_ok=True)
+                    os.makedirs(carpeta_hist, exist_ok=True)
 
-                    # historial
-                    with open(f"{carpeta_hist}/{arch.name}", "wb") as f:
-                        f.write(data)
+                    for arch in archivos:
+                        data = arch.getbuffer()
 
-                st.success("✅ Archivos enviados")
+                        # flujo real
+                        with open(f"{carpeta_pend}/{arch.name}", "wb") as f:
+                            f.write(data)
 
-            else:
-                st.warning("Selecciona archivos")
+                        # historial
+                        with open(f"{carpeta_hist}/{arch.name}", "wb") as f:
+                            f.write(data)
 
-        # HISTORIAL (SEGURO)
-        st.markdown("## 📄 Historial")
+                    st.success(f"✅ {len(archivos)} archivos enviados")
 
-        carpeta_hist = f"reservas/enviados/{area}"
-        os.makedirs(carpeta_hist, exist_ok=True)
+                    st.session_state.upload_key += 1
+                    st.rerun()
 
-        archivos_hist = os.listdir(carpeta_hist)
+                else:
+                    st.warning("Selecciona archivos")
 
-        for f_name in archivos_hist:
+        # -------- HISTORIAL --------
+        elif st.session_state.pagina == "historial":
 
-            ruta = f"{carpeta_hist}/{f_name}"
+            st.title("📄 Historial de Reservas")
 
-            col1, col2 = st.columns([4,1])
-            col1.write(f"📄 {f_name}")
-
-            if col2.button("🗑️", key=f"del_{f_name}"):
-                os.remove(ruta)
+            if st.button("⬅️ Volver"):
+                st.session_state.pagina = "principal"
                 st.rerun()
 
-        # RECHAZADOS
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+
+            archivos_totales = []
+
+            if area_sel == "Todas":
+                for a in areas:
+                    carpeta = f"reservas/enviados/{a}"
+                    if os.path.exists(carpeta):
+                        for f in os.listdir(carpeta):
+                            archivos_totales.append((a, f))
+            else:
+                carpeta = f"reservas/enviados/{area_sel}"
+                if os.path.exists(carpeta):
+                    for f in os.listdir(carpeta):
+                        archivos_totales.append((area_sel, f))
+
+            if not archivos_totales:
+                st.info("No hay archivos")
+            else:
+
+                st.write(f"📄 Total: {len(archivos_totales)}")
+
+                if st.button("🧹 Borrar todos"):
+                    for a, f in archivos_totales:
+                        os.remove(f"reservas/enviados/{a}/{f}")
+                    st.success("Todos eliminados")
+                    st.rerun()
+
+                st.markdown("---")
+
+                for a, f in archivos_totales:
+
+                    col1, col2 = st.columns([6,1])
+                    col1.write(f"📄 {f} ({a})")
+
+                    if col2.button("🗑️", key=f"{a}_{f}"):
+                        os.remove(f"reservas/enviados/{a}/{f}")
+                        st.rerun()
+
+        # -------- RECHAZADOS --------
         st.markdown("## 📛 Archivos Rechazados")
 
         for a in areas:
@@ -190,7 +249,7 @@ else:
                         st.write(f"Motivo: {motivo}")
 
     # ===========================
-    # INGENIERO
+    # INGENIERO (INTOCADO + RECHAZO)
     # ===========================
     elif rol == "ingeniero":
 
@@ -210,7 +269,6 @@ else:
 
                 contra_firma = st.text_input("Contraseña de firma", type="password", key=f"pw_{arc}")
 
-                # FIRMA ORIGINAL
                 if st.button("🖋️ Firmar y enviar", key=f"btn_{arc}"):
 
                     if area in firmas_contrasena:
@@ -230,7 +288,7 @@ else:
                         else:
                             st.error("Contraseña incorrecta")
 
-                # RECHAZO NUEVO
+                # RECHAZO
                 st.write("---")
                 motivo = st.text_input("Motivo rechazo", key=f"mot_{arc}")
 
