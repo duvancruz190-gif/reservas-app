@@ -107,10 +107,7 @@ else:
 
         st.markdown("---")
 
-        if st.button("📤 Enviar"):
-            st.session_state.pagina = "principal"
-            st.rerun()
-
+        # SOLO HISTORIAL
         if st.button("📄 Historial"):
             st.session_state.pagina = "historial"
             st.rerun()
@@ -156,7 +153,6 @@ else:
 
                     st.success(f"✅ {len(archivos)} archivos enviados con éxito")
 
-                    # limpiar uploader
                     st.session_state.upload_key += 1
                     st.rerun()
 
@@ -167,6 +163,10 @@ else:
         elif st.session_state.pagina == "historial":
 
             st.title("📄 Historial de Reservas")
+
+            if st.button("⬅️ Volver"):
+                st.session_state.pagina = "principal"
+                st.rerun()
 
             area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
@@ -207,7 +207,7 @@ else:
                         os.remove(f"reservas/pendientes/{a}/{f}")
                         st.rerun()
 
-    # ================= INGENIERO (SIN CAMBIOS) =================
+    # ================= INGENIERO =================
     elif rol == "ingeniero":
 
         st.header("✍️ Revisión y Firma")
@@ -271,8 +271,3 @@ else:
 
                                 st.success("✅ Firmado correctamente")
                                 st.rerun()
-
-    # ================= ALMACÉN (SIN CAMBIOS) =================
-    elif rol == "almacen":
-        st.header("📦 Gestión de Documentos")
-        st.info("Tu lógica original sigue aquí")
