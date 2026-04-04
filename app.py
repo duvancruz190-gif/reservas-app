@@ -136,19 +136,28 @@ else:
         st.header("📤 Enviar Nueva Reserva")
 
         area = st.selectbox("Selecciona el área", areas)
-        arch = st.file_uploader("Subir PDF", type=["pdf"])
+        
+        # SUBIR VARIOS PDF
+        archivos = st.file_uploader("Subir uno o varios PDFs", type=["pdf"], accept_multiple_files=True)
 
         if st.button("Enviar al Ingeniero"):
-            if arch:
+            if archivos:
+                enviados = 0
                 carpeta_area = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta_area, exist_ok=True)
 
-                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
-                    f.write(arch.getbuffer())
+                for arch in archivos:
+                    ruta_guardado = f"{carpeta_area}/{arch.name}"
+                    with open(ruta_guardado, "wb") as f:
+                        f.write(arch.getbuffer())
+                    enviados += 1
 
-                st.success(f"✅ Documento enviado a {area}.")
+                st.success(f"✅ Se enviaron con éxito {enviados} archivo(s).")
+                
+                # Limpiar los archivos subidos después de enviarlos
+                archivos.clear()
             else:
-                st.warning("Selecciona un archivo.")
+                st.warning("Selecciona al menos un archivo.")
 
     # ===========================
     # INGENIERO
