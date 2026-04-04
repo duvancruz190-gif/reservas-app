@@ -110,9 +110,29 @@ else:
 
         st.markdown("---")
 
-        # BOTÓN HISTORIAL
-        if st.button("📄 Historial"):
-            st.session_state.ver_historial = True
+        # 🔥 Historial SIEMPRE visible
+        st.markdown("### 📄 Historial")
+
+        area_hist = st.selectbox("Selecciona el área", areas)
+
+        carpeta_hist = f"reservas/pendientes/{area_hist}"
+        os.makedirs(carpeta_hist, exist_ok=True)
+
+        archivos_hist = os.listdir(carpeta_hist)
+
+        if not archivos_hist:
+            st.info("No hay archivos en esta área")
+
+        for file_h in archivos_hist:
+
+            col1, col2 = st.columns([3,1])
+            col1.write(f"📄 {file_h}")
+
+            if col2.button("🗑️", key=f"del_{area_hist}_{file_h}"):
+                os.remove(f"{carpeta_hist}/{file_h}")
+                st.rerun()
+
+        st.markdown("---")
 
         # CERRAR SESIÓN
         if st.button("🚪 Cerrar Sesión"):
@@ -124,7 +144,7 @@ else:
     rol = st.session_state.get('rol')
 
     # ===========================
-    # USUARIO (MEJORADO 🔥)
+    # USUARIO
     # ===========================
     if rol == "usuario":
 
@@ -132,7 +152,7 @@ else:
 
         area = st.selectbox("Selecciona el área", areas)
 
-        # 🔥 clave para limpiar uploader
+        # 🔥 limpiar uploader
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
@@ -163,37 +183,8 @@ else:
             else:
                 st.warning("Selecciona al menos un archivo")
 
-        # ===========================
-        # HISTORIAL
-        # ===========================
-        if "ver_historial" not in st.session_state:
-            st.session_state.ver_historial = False
-
-        if st.session_state.ver_historial:
-
-            st.subheader("📄 Historial de envíos")
-
-            area_hist = st.selectbox("Selecciona el área", areas, key="hist_area")
-
-            carpeta_hist = f"reservas/pendientes/{area_hist}"
-            os.makedirs(carpeta_hist, exist_ok=True)
-
-            archivos_hist = os.listdir(carpeta_hist)
-
-            if not archivos_hist:
-                st.info("No hay archivos en esta área")
-
-            for file_h in archivos_hist:
-
-                col1, col2 = st.columns([5,1])
-                col1.write(f"📄 {file_h}")
-
-                if col2.button("🗑️", key=f"del_{area_hist}_{file_h}"):
-                    os.remove(f"{carpeta_hist}/{file_h}")
-                    st.rerun()
-
     # ===========================
-    # INGENIERO (TU CÓDIGO ORIGINAL)
+    # INGENIERO (IGUAL)
     # ===========================
     elif rol == "ingeniero":
 
