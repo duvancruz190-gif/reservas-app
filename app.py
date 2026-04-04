@@ -1,24 +1,3 @@
-import streamlit as st
-import os
-import pandas as pd
-
-# --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Gestión de Reservas - Usuario", layout="wide")
-
-# --- CARPETAS ---
-for carpeta in ["reservas/pendientes", "assets"]:
-    os.makedirs(carpeta, exist_ok=True)
-
-# --- ÁREAS ---
-areas = ["Producción", "Calidad", "Mantenimiento", "Logística",
-         "Recursos Humanos", "Ambiental", "Salud Ocupacional",
-         "Marketing", "Financiera", "Almacén"]
-
-# --- LOGIN SIMULADO ---
-# Para simplificar este ejemplo, asumimos que el usuario ya está logueado
-rol = "usuario"
-st.session_state.user_name = "usuario_demo"
-
 # ===========================
 # USUARIO
 # ===========================
@@ -55,7 +34,6 @@ if rol == "usuario":
 
     area_hist = st.sidebar.selectbox("Filtrar por área", ["Todos"] + areas)
 
-    # Cargar todos los archivos enviados
     historial = []
     base_path = "reservas/pendientes"
     for a in areas:
@@ -66,6 +44,7 @@ if rol == "usuario":
                     historial.append({"Área": a, "Archivo": f_name, "Ruta": f"{carpeta_area}/{f_name}"})
 
     if historial:
+        import pandas as pd
         df_hist = pd.DataFrame(historial)
         for idx, row in df_hist.iterrows():
             with st.sidebar.expander(f"{row['Archivo']} ({row['Área']})"):
@@ -75,9 +54,9 @@ if rol == "usuario":
                     col2.download_button("⬇️", file, file_name=row['Archivo'])
                 if col3.button("🗑️", key=f"del_{row['Ruta']}"):
                     os.remove(row['Ruta'])
-                    st.experimental_rerun()  # refresca para eliminar del historial
+                    st.rerun()  # refresca el historial al borrar
 
-        # Botón para descargar historial completo en Excel
+        # Descargar historial en Excel
         excel_df = df_hist.drop(columns=["Ruta"])
         excel_path = "historial.xlsx"
         excel_df.to_excel(excel_path, index=False)
