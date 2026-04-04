@@ -73,21 +73,53 @@ st.markdown("""
 
         .stTextInput>div>div>input { border-radius: 8px; }
 
+        /* SIDEBAR */
         section[data-testid="stSidebar"] {
             background-color: #002b5c;
             color: white;
         }
 
-        section[data-testid="stSidebar"] * { color: white !important; }
-
-        /* Botón Excel */
-        div.stDownloadButton > button {
-            background-color: #005baa !important;
+        section[data-testid="stSidebar"] * {
             color: white !important;
         }
 
+        /* EXPANDER */
+        .streamlit-expanderHeader {
+            background-color: #004080 !important;
+            color: white !important;
+            border-radius: 6px;
+        }
+
+        .streamlit-expanderContent {
+            background-color: #003366 !important;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        /* SELECTBOX */
+        div[data-baseweb="select"] > div {
+            background-color: #004080 !important;
+            color: white !important;
+            border-radius: 8px;
+        }
+
+        div[data-baseweb="select"] span {
+            color: white !important;
+        }
+
+        div[data-baseweb="select"] input {
+            color: white !important;
+        }
+
+        /* BOTÓN EXCEL */
+        div.stDownloadButton > button {
+            background-color: #007bff !important;
+            color: white !important;
+            border-radius: 8px;
+        }
+
         div.stDownloadButton > button:hover {
-            background-color: #003f7d !important;
+            background-color: #0056b3 !important;
         }
     </style>
 """, unsafe_allow_html=True)
