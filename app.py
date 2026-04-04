@@ -1,4 +1,4 @@
- import streamlit as st
+import streamlit as st
 import os
 import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
