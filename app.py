@@ -4,7 +4,6 @@ import fitz  # PyMuPDF
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
-import pandas as pd
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
@@ -14,15 +13,14 @@ st.markdown("""
     <style>
         .stApp {
             background-color: #f5f7fa;
-            font-family: "Arial", sans-serif;
         }
 
         .stButton>button {
             background-color: #005baa;
             color: white;
-            font-weight: bold;
-            border-radius: 6px;
+            border-radius: 8px;
             height: 45px;
+            font-weight: bold;
         }
 
         .stButton>button:hover {
@@ -31,9 +29,7 @@ st.markdown("""
         }
 
         .stTextInput>div>div>input {
-            border-radius: 6px;
-            border: 1px solid #005baa;
-            padding: 6px;
+            border-radius: 8px;
         }
 
         section[data-testid="stSidebar"] {
@@ -43,27 +39,6 @@ st.markdown("""
 
         section[data-testid="stSidebar"] * {
             color: white !important;
-        }
-
-        .st-expander {
-            background-color: #0f2a50;
-            border-radius: 6px;
-            padding: 5px;
-        }
-
-        .st-expander header {
-            font-weight: bold;
-            color: #ffd966;
-        }
-
-        .stDownloadButton>button {
-            background-color: #0072c6;
-            color: white;
-            border-radius: 6px;
-        }
-
-        .stDownloadButton>button:hover {
-            background-color: #004a8f;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -133,8 +108,6 @@ if not st.session_state.login:
 # ===========================
 else:
 
-    rol = st.session_state.get('rol')  # <- importante para evitar NameError
-
     # --- SIDEBAR ---
     with st.sidebar:
 
@@ -143,7 +116,7 @@ else:
 
         st.markdown("### 📂 Menú Principal")
         st.write(f"👤 *{st.session_state.get('user_name')}*")
-        st.write(f"🔑 Rol: *{rol.upper()}*")
+        st.write(f"🔑 Rol: *{st.session_state.get('rol').upper()}*")
 
         st.markdown("---")
 
@@ -153,6 +126,7 @@ else:
             st.rerun()
 
     st.title("📋 Gestión de Reservas")
+    rol = st.session_state.get('rol')
 
     # ===========================
     # USUARIO
@@ -162,77 +136,19 @@ else:
         st.header("📤 Enviar Nueva Reserva")
 
         area = st.selectbox("Selecciona el área", areas)
+        arch = st.file_uploader("Subir PDF", type=["pdf"])
 
-        archivos = st.file_uploader(
-            "Subir PDF(s)",
-            type=["pdf"],
-            accept_multiple_files=True
-        )
-
-        if st.button("Enviar al Ingeniero", use_container_width=True):
-            if archivos:
+        if st.button("Enviar al Ingeniero"):
+            if arch:
                 carpeta_area = f"reservas/pendientes/{area}"
                 os.makedirs(carpeta_area, exist_ok=True)
 
-                for arch in archivos:
-                    with open(f"{carpeta_area}/{arch.name}", "wb") as f:
-                        f.write(arch.getbuffer())
+                with open(f"{carpeta_area}/{arch.name}", "wb") as f:
+                    f.write(arch.getbuffer())
 
-                st.success(f"✅ Documento(s) enviado(s): {len(archivos)} archivo(s).")
+                st.success(f"✅ Documento enviado a {area}.")
             else:
-                st.warning("Selecciona al menos un archivo.")
-
-        # --- Historial ---
-        st.sidebar.header("🕒 Historial de Envíos")
-
-        area_hist = st.sidebar.selectbox("Filtrar por área", ["Todos"] + areas)
-
-        historial = []
-        base_path = "reservas/pendientes"
-        for a in areas:
-            carpeta_area = f"{base_path}/{a}"
-            if os.path.exists(carpeta_area):
-                for f_name in os.listdir(carpeta_area):
-                    if area_hist == "Todos" or area_hist == a:
-                        historial.append({"Área": a, "Archivo": f_name, "Ruta": f"{carpeta_area}/{f_name}"})
-
-        if historial:
-            df_hist = pd.DataFrame(historial)
-            for idx, row in df_hist.iterrows():
-                with st.sidebar.expander(f"{row['Archivo']} ({row['Área']})"):
-                    col1, col2, col3 = st.columns([4,1,1])
-                    col1.write(row['Archivo'])
-
-                    with open(row['Ruta'], "rb") as file:
-                        col2.download_button(
-                            "⬇️",
-                            file,
-                            file_name=row['Archivo'],
-                            key=f"dl_{row['Ruta']}"
-                        )
-
-                    if col3.button(
-                        "🗑️ Borrar",
-                        key=f"del_{row['Ruta']}",
-                        help="Eliminar este archivo",
-                        use_container_width=True
-                    ):
-                        os.remove(row['Ruta'])
-                        st.experimental_rerun()
-
-            # Descargar historial Excel
-            excel_df = df_hist.drop(columns=["Ruta"])
-            excel_path = "historial.xlsx"
-            excel_df.to_excel(excel_path, index=False)
-            with open(excel_path, "rb") as f:
-                st.sidebar.download_button(
-                    "📥 Descargar Historial Excel",
-                    f,
-                    file_name="historial.xlsx"
-                )
-
-        else:
-            st.sidebar.info("No hay envíos registrados.")
+                st.warning("Selecciona un archivo.")
 
     # ===========================
     # INGENIERO
