@@ -8,37 +8,30 @@ import shutil
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
-# --- ESTILO EMPRESARIAL ---
+# --- ESTILO ---
 st.markdown("""
-    <style>
-        .stApp { background-color: #f5f7fa; }
+<style>
+.stApp { background-color: #f5f7fa; }
 
-        .stButton>button {
-            background-color: #005baa;
-            color: white;
-            border-radius: 8px;
-            height: 45px;
-            font-weight: bold;
-        }
+.stButton>button {
+    background-color: #005baa;
+    color: white;
+    border-radius: 8px;
+    height: 45px;
+    font-weight: bold;
+}
 
-        .stButton>button:hover {
-            background-color: #003f7d;
-            color: white;
-        }
+.stButton>button:hover {
+    background-color: #003f7d;
+}
 
-        .stTextInput>div>div>input {
-            border-radius: 8px;
-        }
-
-        section[data-testid="stSidebar"] {
-            background-color: #002b5c;
-            color: white;
-        }
-
-        section[data-testid="stSidebar"] * {
-            color: white !important;
-        }
-    </style>
+section[data-testid="stSidebar"] {
+    background-color: #002b5c;
+}
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 # --- CARPETAS ---
@@ -47,8 +40,8 @@ for carpeta in [
     "reservas/firmadas",
     "reservas/firmas",
     "reservas/archivo",
-    "reservas/enviados",   # historial seguro
-    "reservas/rechazados", # rechazados
+    "reservas/enviados",
+    "reservas/rechazados",
     "assets"
 ]:
     os.makedirs(carpeta, exist_ok=True)
@@ -74,9 +67,6 @@ firmas_contrasena = {
 if "login" not in st.session_state:
     st.session_state.login = False
 
-if "pagina" not in st.session_state:
-    st.session_state.pagina = "principal"
-
 # ================= LOGIN =================
 if not st.session_state.login:
 
@@ -87,6 +77,7 @@ if not st.session_state.login:
             st.image("assets/ETERNITTTTT.png")
 
         st.markdown("<h2 style='text-align: center;'>Acceso al Sistema</h2>", unsafe_allow_html=True)
+        st.caption("Gestión de Reservas - Eternit Colombiana")
 
         u = st.text_input("Usuario")
         p = st.text_input("Contraseña", type="password")
@@ -105,19 +96,12 @@ else:
 
     # --- SIDEBAR ---
     with st.sidebar:
-
         if os.path.exists("assets/ETERNITTTTT.png"):
             st.image("assets/ETERNITTTTT.png", width=180)
 
         st.markdown("### 📂 Menú Principal")
         st.write(f"👤 **{st.session_state.get('user_name')}**")
         st.write(f"🔑 Rol: **{st.session_state.get('rol').upper()}**")
-
-        st.markdown("---")
-
-        if st.button("📄 Historial"):
-            st.session_state.pagina = "historial"
-            st.rerun()
 
         st.markdown("---")
 
@@ -129,10 +113,14 @@ else:
     st.title("📋 Gestión de Reservas")
     rol = st.session_state.get('rol')
 
-    # ===========================
-    # USUARIO
-    # ===========================
+    # ================= USUARIO =================
     if rol == "usuario":
+
+        if "pagina" not in st.session_state:
+            st.session_state.pagina = "principal"
+
+        if "upload_key" not in st.session_state:
+            st.session_state.upload_key = 0
 
         # -------- ENVÍO --------
         if st.session_state.pagina == "principal":
@@ -140,9 +128,6 @@ else:
             st.header("📤 Enviar Nueva Reserva")
 
             area = st.selectbox("Selecciona el área", areas)
-
-            if "upload_key" not in st.session_state:
-                st.session_state.upload_key = 0
 
             archivos = st.file_uploader(
                 "Subir PDF",
@@ -163,21 +148,21 @@ else:
                     for arch in archivos:
                         data = arch.getbuffer()
 
-                        # flujo real
                         with open(f"{carpeta_pend}/{arch.name}", "wb") as f:
                             f.write(data)
 
-                        # historial
                         with open(f"{carpeta_hist}/{arch.name}", "wb") as f:
                             f.write(data)
 
                     st.success(f"✅ {len(archivos)} archivos enviados")
-
                     st.session_state.upload_key += 1
                     st.rerun()
-
                 else:
                     st.warning("Selecciona archivos")
+
+            if st.button("📄 Ver historial"):
+                st.session_state.pagina = "historial"
+                st.rerun()
 
         # -------- HISTORIAL --------
         elif st.session_state.pagina == "historial":
@@ -207,25 +192,8 @@ else:
             if not archivos_totales:
                 st.info("No hay archivos")
             else:
-
-                st.write(f"📄 Total: {len(archivos_totales)}")
-
-                if st.button("🧹 Borrar todos"):
-                    for a, f in archivos_totales:
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                    st.success("Todos eliminados")
-                    st.rerun()
-
-                st.markdown("---")
-
                 for a, f in archivos_totales:
-
-                    col1, col2 = st.columns([6,1])
-                    col1.write(f"📄 {f} ({a})")
-
-                    if col2.button("🗑️", key=f"{a}_{f}"):
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                        st.rerun()
+                    st.write(f"📄 {f} ({a})")
 
         # -------- RECHAZADOS --------
         st.markdown("## 📛 Archivos Rechazados")
@@ -235,7 +203,6 @@ else:
 
             if os.path.exists(carpeta):
                 for f in os.listdir(carpeta):
-
                     if f.endswith(".pdf"):
 
                         ruta_json = f"{carpeta}/{f}.json"
@@ -248,9 +215,7 @@ else:
                         st.warning(f"{f} ({a})")
                         st.write(f"Motivo: {motivo}")
 
-    # ===========================
-    # INGENIERO (INTOCADO + RECHAZO)
-    # ===========================
+    # ================= INGENIERO =================
     elif rol == "ingeniero":
 
         st.header("✍️ Revisión y Firma")
@@ -258,6 +223,9 @@ else:
         area = st.selectbox("Selecciona el área", areas)
         carpeta_area = f"reservas/pendientes/{area}"
         pendientes = os.listdir(carpeta_area) if os.path.exists(carpeta_area) else []
+
+        if not pendientes:
+            st.info("No hay documentos pendientes en esta área.")
 
         for arc in pendientes:
 
@@ -277,10 +245,23 @@ else:
 
                         if contra_firma == info_firma["password"]:
 
+                            doc = fitz.open(ruta_full)
+                            pagina = doc[0]
+
+                            rect_firma = fitz.Rect(200, 700, 450, 800)
+
+                            pagina.insert_image(
+                                rect_firma,
+                                filename=info_firma["archivo"]
+                            )
+
                             carpeta_firmadas = f"reservas/firmadas/{area}"
                             os.makedirs(carpeta_firmadas, exist_ok=True)
 
-                            shutil.move(ruta_full, f"{carpeta_firmadas}/{arc}")
+                            doc.save(f"{carpeta_firmadas}/{arc}")
+                            doc.close()
+
+                            os.remove(ruta_full)
 
                             st.success("Firmado correctamente")
                             st.rerun()
@@ -288,7 +269,7 @@ else:
                         else:
                             st.error("Contraseña incorrecta")
 
-                # RECHAZO
+                # RECHAZAR
                 st.write("---")
                 motivo = st.text_input("Motivo rechazo", key=f"mot_{arc}")
 
@@ -307,9 +288,44 @@ else:
                         st.error("Documento rechazado")
                         st.rerun()
 
-    # ===========================
-    # ALMACÉN (IGUAL)
-    # ===========================
+    # ================= ALMACÉN =================
     elif rol == "almacen":
+
         st.header("📦 Gestión de Documentos")
-        st.info("Tu lógica original sigue aquí")
+
+        estado_file = "reservas/firmadas/estado.json"
+
+        if os.path.exists(estado_file):
+            with open(estado_file, "r") as f:
+                estados = json.load(f)
+        else:
+            estados = {}
+
+        vista = st.radio("Vista", ["Firmados", "Archivados"])
+        area = st.selectbox("Selecciona el área", areas)
+
+        carpeta_area = f"reservas/firmadas/{area}" if vista == "Firmados" else f"reservas/archivo/{area}"
+        os.makedirs(carpeta_area, exist_ok=True)
+
+        archivos = os.listdir(carpeta_area)
+
+        for f_name in archivos:
+
+            ruta = f"{carpeta_area}/{f_name}"
+
+            col1, col2, col3, col4 = st.columns([3,1,1,1])
+            col1.write(f_name)
+
+            with open(ruta, "rb") as file:
+                col2.download_button("⬇️", file, file_name=f_name)
+
+            if vista == "Firmados":
+                if col3.button("📁", key=f"arch_{ruta}"):
+                    destino = f"reservas/archivo/{area}"
+                    os.makedirs(destino, exist_ok=True)
+                    shutil.move(ruta, f"{destino}/{f_name}")
+                    st.rerun()
+
+            if col4.button("🗑️", key=f"del_{ruta}"):
+                os.remove(ruta)
+                st.rerun()
