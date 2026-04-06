@@ -67,6 +67,7 @@ if not st.session_state.login:
                 st.session_state.login = True
                 st.session_state.rol = usuarios[u]["rol"]
                 st.session_state.user_name = u
+                st.session_state.pagina = "principal"
                 st.rerun()
             else:
                 st.error("Credenciales incorrectas")
@@ -74,12 +75,35 @@ if not st.session_state.login:
 # ================= SISTEMA =================
 else:
 
+    # -------- SIDEBAR --------
     with st.sidebar:
-        st.markdown("### 📂 Menú")
-        st.write(f"👤 {st.session_state.user_name}")
-        st.write(f"🔑 {st.session_state.rol}")
 
-        if st.button("🚪 Cerrar sesión"):
+        if os.path.exists("assets/ETERNITTTTT.png"):
+            st.image("assets/ETERNITTTTT.png", width=180)
+
+        st.markdown("### 👤 Usuario")
+        st.write(f"**{st.session_state.user_name}**")
+        st.write(f"Rol: {st.session_state.rol}")
+
+        st.markdown("---")
+
+        if st.session_state.rol == "usuario":
+
+            if st.button("📤 Enviar"):
+                st.session_state.pagina = "principal"
+                st.rerun()
+
+            if st.button("📄 Historial"):
+                st.session_state.pagina = "historial"
+                st.rerun()
+
+            if st.button("📛 Rechazados"):
+                st.session_state.pagina = "rechazados"
+                st.rerun()
+
+            st.markdown("---")
+
+        if st.button("🚪 Cerrar sesión", use_container_width=True):
             st.session_state.clear()
             st.rerun()
 
@@ -95,15 +119,17 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
-        # ---- ENVÍO ----
+        # -------- ENVÍO --------
         if st.session_state.pagina == "principal":
 
-            st.header("📤 Enviar")
+            st.header("📤 Enviar Nueva Reserva")
 
             area = st.selectbox("Área", areas)
 
             archivos = st.file_uploader(
-                "PDFs", type=["pdf"], accept_multiple_files=True,
+                "Subir PDFs",
+                type=["pdf"],
+                accept_multiple_files=True,
                 key=st.session_state.upload_key
             )
 
@@ -121,22 +147,14 @@ else:
                         with open(f"reservas/enviados/{area}/{arch.name}", "wb") as f:
                             f.write(data)
 
-                    st.success("Enviado")
+                    st.success(f"{len(archivos)} archivos enviados")
                     st.session_state.upload_key += 1
                     st.rerun()
 
-            if st.button("📄 Historial"):
-                st.session_state.pagina = "historial"
-                st.rerun()
-
-        # ---- HISTORIAL ----
+        # -------- HISTORIAL --------
         elif st.session_state.pagina == "historial":
 
             st.title("📄 Historial")
-
-            if st.button("⬅️ Volver"):
-                st.session_state.pagina = "principal"
-                st.rerun()
 
             archivos_totales = []
             for a in areas:
@@ -157,57 +175,62 @@ else:
                 for a,f in archivos_totales:
                     col1,col2 = st.columns([6,1])
                     col1.write(f"{f} ({a})")
-                    if col2.button("🗑️", key=f"{a}{f}"):
+
+                    if col2.button("🗑️", key=f"hist_{a}_{f}"):
                         os.remove(f"reservas/enviados/{a}/{f}")
                         st.rerun()
 
-        # ---- RECHAZADOS ----
-        st.markdown("## 📛 Rechazados")
+        # -------- RECHAZADOS --------
+        elif st.session_state.pagina == "rechazados":
 
-        rechazados = []
-        for a in areas:
-            ruta = f"reservas/rechazados/{a}"
-            if os.path.exists(ruta):
-                for f in os.listdir(ruta):
-                    if f.endswith(".pdf"):
-                        rechazados.append((a,f))
+            st.title("📛 Archivos Rechazados")
 
-        if rechazados:
+            rechazados = []
+            for a in areas:
+                ruta = f"reservas/rechazados/{a}"
+                if os.path.exists(ruta):
+                    for f in os.listdir(ruta):
+                        if f.endswith(".pdf"):
+                            rechazados.append((a,f))
 
-            if st.button("🧹 Borrar todos rechazados"):
-                for a,f in rechazados:
-                    os.remove(f"reservas/rechazados/{a}/{f}")
-                    json_path = f"reservas/rechazados/{a}/{f}.json"
-                    if os.path.exists(json_path):
-                        os.remove(json_path)
-                st.rerun()
+            if not rechazados:
+                st.info("No hay rechazados")
+            else:
 
-            for a,f in rechazados:
-
-                motivo = "Sin motivo"
-                ruta_json = f"reservas/rechazados/{a}/{f}.json"
-                if os.path.exists(ruta_json):
-                    with open(ruta_json) as ff:
-                        motivo = json.load(ff)["motivo"]
-
-                col1,col2 = st.columns([6,1])
-                col1.warning(f"{f} ({a})")
-                col1.write(motivo)
-
-                if col2.button("🗑️", key=f"rech{a}{f}"):
-                    os.remove(f"reservas/rechazados/{a}/{f}")
-                    if os.path.exists(ruta_json):
-                        os.remove(ruta_json)
+                if st.button("🧹 Borrar todos"):
+                    for a,f in rechazados:
+                        os.remove(f"reservas/rechazados/{a}/{f}")
+                        json_path = f"reservas/rechazados/{a}/{f}.json"
+                        if os.path.exists(json_path):
+                            os.remove(json_path)
                     st.rerun()
+
+                for a,f in rechazados:
+
+                    motivo = "Sin motivo"
+                    ruta_json = f"reservas/rechazados/{a}/{f}.json"
+
+                    if os.path.exists(ruta_json):
+                        with open(ruta_json) as ff:
+                            motivo = json.load(ff)["motivo"]
+
+                    col1,col2 = st.columns([6,1])
+                    col1.warning(f"{f} ({a})")
+                    col1.write(f"Motivo: {motivo}")
+
+                    if col2.button("🗑️", key=f"rech_{a}_{f}"):
+                        os.remove(f"reservas/rechazados/{a}/{f}")
+                        if os.path.exists(ruta_json):
+                            os.remove(ruta_json)
+                        st.rerun()
 
     # ================= INGENIERO =================
     elif rol == "ingeniero":
 
-        st.header("✍️ Firmar")
+        st.header("✍️ Revisión y Firma")
 
         area = st.selectbox("Área", areas)
         carpeta = f"reservas/pendientes/{area}"
-
         archivos = os.listdir(carpeta) if os.path.exists(carpeta) else []
 
         for arc in archivos:
@@ -250,10 +273,10 @@ else:
 
                         st.rerun()
 
-    # ================= ALMACEN =================
+    # ================= ALMACÉN =================
     elif rol == "almacen":
 
-        st.header("📦 Documentos")
+        st.header("📦 Gestión de Documentos")
 
         area = st.selectbox("Área", areas)
         vista = st.radio("Vista", ["Firmados","Archivados"])
