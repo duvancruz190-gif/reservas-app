@@ -283,15 +283,40 @@ else:
 
                             doc = fitz.open(ruta)
                             page = doc[0]
-                            rect = fitz.Rect(200,700,450,800)
 
-                            page.insert_image(rect, filename=ruta_firma)
+                            rect_firma = None
+                            coincidencias = page.search_for("FIRMA 1")
+
+                            if coincidencias:
+                                ref = coincidencias[0]
+                                rect_firma = fitz.Rect(
+                                    ref.x0 - 100,
+                                    ref.y0 - 80,
+                                    ref.x1 + 100,
+                                    ref.y0
+                                )
+                            else:
+                                ancho = page.rect.width
+                                alto = page.rect.height
+                                rect_firma = fitz.Rect(
+                                    ancho * 0.55,
+                                    alto * 0.75,
+                                    ancho * 0.9,
+                                    alto * 0.95
+                                )
+
+                            page.insert_image(
+                                rect_firma,
+                                filename=ruta_firma,
+                                rotate=90
+                            )
 
                             os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{area}/{arc}")
                             doc.close()
 
                             os.remove(ruta)
+                            st.success("✅ Documento firmado correctamente")
                             st.rerun()
 
                         else:
