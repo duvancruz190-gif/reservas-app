@@ -43,6 +43,7 @@ usuarios = {
 
 firmas_contrasena = {
     "Producción":{"archivo":"reservas/firmas/Imagen1.png","password":"1234"},
+    "Logística":{"archivo":"reservas/firmas/LogisticaRojas.png","password":"5678"},
 }
 
 if "login" not in st.session_state:
