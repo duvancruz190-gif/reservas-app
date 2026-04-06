@@ -36,13 +36,13 @@ areas = ["Producción","Calidad","Mantenimiento","Logística",
          "Marketing","Financiera","Almacén"]
 
 usuarios = {
-    "usuario":{"password":"123","rol":"usuario"},
-    "ingeniero":{"password":"999","rol":"ingeniero"},
-    "almacen":{"password":"000","rol":"almacen"}
+    "usuario":{"password":"123","rol":"Usuario"},
+    "ingeniero":{"password":"999","rol":"Ingeniero"},
+    "almacen":{"password":"000","rol":"Almacen"}
 }
 
 firmas_contrasena = {
-    "Producción":{"archivo":"reservas/firmas/carlos_alfonso.jpeg","password":"1234"},
+    "Producción":{"archivo":"reservas/firmas/Imagen1.png","password":"1234"},
 }
 
 if "login" not in st.session_state:
