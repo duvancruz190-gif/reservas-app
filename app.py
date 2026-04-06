@@ -299,16 +299,15 @@ else:
                                 ancho = page.rect.width
                                 alto = page.rect.height
                                 rect_firma = fitz.Rect(
-                                    ancho * 0.55,
-                                    alto * 0.75,
-                                    ancho * 0.9,
-                                    alto * 0.95
+                                    ref.x0 - 150,   # más ancho izquierda
+                                    ref.y0 - 120,   # más altura arriba
+                                    ref.x1 + 150,   # más ancho derecha
+                                    ref.y0 - 10     # un poquito arriba de la línea
                                 )
 
                             page.insert_image(
                                 rect_firma,
                                 filename=ruta_firma,
-                                rotate=90
                             )
 
                             os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
