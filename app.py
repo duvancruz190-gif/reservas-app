@@ -318,7 +318,7 @@ else:
                                         x1,             # Inicio exacto de la línea
                                         y1 - alto_firma,# Altura proporcional hacia arriba
                                         x2,             # Fin exacto de la línea
-                                        y1 - 3          # Margen de 3 puntos sobre la línea
+                                        y1 - 1          # Margen de 3 puntos sobre la línea
                                     )
                                 else:
                                     # Fallback si hay texto pero no línea geométrica
