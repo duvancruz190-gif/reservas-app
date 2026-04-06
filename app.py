@@ -229,7 +229,15 @@ else:
 
         st.header("✍️ Revisión y Firma")
 
-        area = st.selectbox("Área", areas)
+        col1, col2 = st.columns([5,1])
+
+        with col1:
+            area = st.selectbox("Área", areas)
+
+        with col2:
+            if st.button("🔄"):
+                st.rerun()
+
         carpeta = f"reservas/pendientes/{area}"
         archivos = os.listdir(carpeta) if os.path.exists(carpeta) else []
 
@@ -266,7 +274,6 @@ else:
                         else:
                             st.error(f"No se encontró la firma en: {ruta_firma}")
 
-                # RECHAZAR
                 motivo = st.text_input("Motivo", key=f"m{arc}")
 
                 if st.button("Rechazar", key=f"r{arc}"):
@@ -285,7 +292,15 @@ else:
 
         st.header("📦 Gestión de Documentos")
 
-        area = st.selectbox("Área", areas)
+        col1, col2 = st.columns([5,1])
+
+        with col1:
+            area = st.selectbox("Área", areas)
+
+        with col2:
+            if st.button("🔄", key="refresh_almacen"):
+                st.rerun()
+
         vista = st.radio("Vista", ["Firmados","Archivados"])
 
         carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
