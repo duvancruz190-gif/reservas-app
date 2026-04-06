@@ -291,19 +291,20 @@ else:
                             if coincidencias:
                                 ref = coincidencias[0]
                                 rect_firma = fitz.Rect(
-                                    ref.x0 - 100,
-                                    ref.y0 - 80,
-                                    ref.x1 + 100,
-                                    ref.y0
+                                    ref.x0 - 120, # ancho moderado
+                                    ref.y0 - 140, # más arriba (NO toca la línea)
+                                    ref.x1 + 120,
+                                    ref.y0 - 40   # deja espacio con la línea
                                 )
                             else:
+                                # 🔄 fallback seguro (SIN usar ref)
                                 ancho = page.rect.width
                                 alto = page.rect.height
                                 rect_firma = fitz.Rect(
-                                    ref.x0 - 150,   # más ancho izquierda
-                                    ref.y0 - 120,   # más altura arriba
-                                    ref.x1 + 150,   # más ancho derecha
-                                    ref.y0 - 10     # un poquito arriba de la línea
+                                    ancho * 0.55,  
+                                    alto * 0.65,   
+                                    ancho * 0.85,  
+                                    alto * 0.85   
                                 )
 
                             page.insert_image(
