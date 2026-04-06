@@ -42,7 +42,7 @@ usuarios = {
 }
 
 firmas_contrasena = {
-    "Producción":{"archivo":"reservas/firmas/Imagen1.png","password":"1234"},
+    "Producción":{"archivo":"reservas/firmas/carlos_alfonso.jpeg","password":"1234"},
 }
 
 if "login" not in st.session_state:
@@ -156,16 +156,27 @@ else:
 
             st.title("📄 Historial")
 
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+
             archivos_totales = []
-            for a in areas:
-                ruta = f"reservas/enviados/{a}"
+
+            if area_sel == "Todas":
+                for a in areas:
+                    ruta = f"reservas/enviados/{a}"
+                    if os.path.exists(ruta):
+                        for f in os.listdir(ruta):
+                            archivos_totales.append((a,f))
+            else:
+                ruta = f"reservas/enviados/{area_sel}"
                 if os.path.exists(ruta):
                     for f in os.listdir(ruta):
-                        archivos_totales.append((a,f))
+                        archivos_totales.append((area_sel,f))
 
             if not archivos_totales:
                 st.info("No hay archivos")
             else:
+
+                st.write(f"📄 Total: {len(archivos_totales)}")
 
                 if st.button("🧹 Borrar todo"):
                     for a,f in archivos_totales:
@@ -185,17 +196,29 @@ else:
 
             st.title("📛 Archivos Rechazados")
 
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+
             rechazados = []
-            for a in areas:
-                ruta = f"reservas/rechazados/{a}"
+
+            if area_sel == "Todas":
+                for a in areas:
+                    ruta = f"reservas/rechazados/{a}"
+                    if os.path.exists(ruta):
+                        for f in os.listdir(ruta):
+                            if f.endswith(".pdf"):
+                                rechazados.append((a,f))
+            else:
+                ruta = f"reservas/rechazados/{area_sel}"
                 if os.path.exists(ruta):
                     for f in os.listdir(ruta):
                         if f.endswith(".pdf"):
-                            rechazados.append((a,f))
+                            rechazados.append((area_sel,f))
 
             if not rechazados:
                 st.info("No hay rechazados")
             else:
+
+                st.write(f"📄 Total: {len(rechazados)}")
 
                 if st.button("🧹 Borrar todos"):
                     for a,f in rechazados:
