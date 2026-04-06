@@ -42,7 +42,7 @@ usuarios = {
 }
 
 firmas_contrasena = {
-    "Producción":{"archivo":"reservas/firmas/carlos_alfonso.jpeg","password":"1234"},
+    "Producción":{"archivo":"reservas/firmas/Imagen1.png","password":"1234"},
 }
 
 if "login" not in st.session_state:
