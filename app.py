@@ -286,51 +286,50 @@ else:
                             page = doc[0]
                             rect_firma = None
 
-                            # --- LÓGICA DE FIRMA INTELIGENTE ---
+                            # --- BÚSQUEDA DINÁMICA DE LA LÍNEA ---
                             coincidencias = page.search_for("FIRMA 1")
 
                             if coincidencias:
                                 ref = coincidencias[0]
                                 lineas_validas = []
 
-                                # Buscar líneas horizontales reales cerca del texto
                                 for d in page.get_drawings():
                                     for item in d["items"]:
-                                        if item[0] == "l":  # Línea
+                                        if item[0] == "l": 
                                             p1, p2 = item[1], item[2]
                                             x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
 
-                                            # Filtrar solo horizontales cerca del texto
+                                            # Buscamos líneas horizontales arriba del texto "FIRMA 1"
                                             if abs(y1 - y2) < 2:
                                                 if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
                                                     lineas_validas.append((x1, y1, x2, y2))
 
                                 if lineas_validas:
-                                    # Seleccionar la línea más cercana al texto "FIRMA 1"
+                                    # Tomar la línea más cercana al texto
                                     x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
                                     
                                     ancho_linea = x2 - x1
-                                    # Proporción dinámica: Logística es un poco más baja
                                     proporcion = 0.20 if area == "Logística" else 0.25
                                     alto_firma = ancho_linea * proporcion
 
+                                    # --- AJUSTE DE PRECISIÓN ---
+                                    # Usamos 'y1 + 5' para bajar la firma y compensar márgenes de imagen
                                     rect_firma = fitz.Rect(
-                                        x1,             # Inicio exacto de la línea
-                                        y1 - alto_firma,# Altura proporcional hacia arriba
-                                        x2,             # Fin exacto de la línea
-                                        y1 - 1          # Margen de 3 puntos sobre la línea
+                                        x1,             
+                                        (y1 + 5) - alto_firma, 
+                                        x2,             
+                                        y1 + 5          
                                     )
                                 else:
-                                    # Fallback si hay texto pero no línea geométrica
+                                    # Fallback 1: Si hay texto pero no línea geométrica detectable
                                     x_centro = (ref.x0 + ref.x1) / 2
-                                    rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 100, x_centro + 110, ref.y0 - 20)
+                                    rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 90, x_centro + 110, ref.y0 - 10)
                             else:
-                                # Fallback total si no encuentra "FIRMA 1"
+                                # Fallback 2: Si no encuentra el texto "FIRMA 1"
                                 ancho = page.rect.width
                                 alto = page.rect.height
                                 rect_firma = fitz.Rect(ancho * 0.55, alto * 0.65, ancho * 0.85, alto * 0.85)
 
-                            # Insertar imagen en el rectángulo calculado
                             page.insert_image(rect_firma, filename=ruta_firma)
 
                             os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
