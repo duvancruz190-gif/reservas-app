@@ -285,64 +285,32 @@ else:
                             doc = fitz.open(ruta)
                             page = doc[0]
 
-                            # 🔥 FIRMA INTELIGENTE (ÚNICO CAMBIO)
                             rect_firma = None
                             coincidencias = page.search_for("FIRMA 1")
 
                             if coincidencias:
                                 ref = coincidencias[0]
-                                lineas_validas = []
-
-                                for d in page.get_drawings():
-                                    for item in d["items"]:
-                                        if item[0] == "l":
-                                            x1, y1 = item[1]
-                                            x2, y2 = item[2]
-
-                                            if abs(y1 - y2) < 2:
-                                                if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                                                    lineas_validas.append((x1, y1, x2, y2))
-
-                                if lineas_validas:
-                                    x1, y1, x2, y2 = sorted(
-                                        lineas_validas,
-                                        key=lambda x: abs(x[1] - ref.y0)
-                                    )[0]
-
-                                    ancho_linea = x2 - x1
-
-                                    if area == "Logística":
-                                        alto_firma = ancho_linea * 0.18
-                                    else:
-                                        alto_firma = ancho_linea * 0.25
-
-                                    rect_firma = fitz.Rect(
-                                        x1,
-                                        y1 - alto_firma,
-                                        x2,
-                                        y1 - 5
-                                    )
-
-                                else:
-                                    x_centro = (ref.x0 + ref.x1) / 2
-                                    rect_firma = fitz.Rect(
-                                        x_centro - 120,
-                                        ref.y0 - 100,
-                                        x_centro + 120,
-                                        ref.y0 - 20
-                                    )
-
+                                rect_firma = fitz.Rect(
+                                    ref.x0 - 120, # ancho moderado
+                                    ref.y0 - 140, # más arriba (NO toca la línea)
+                                    ref.x1 + 120,
+                                    ref.y0 - 40   # deja espacio con la línea
+                                )
                             else:
+                                # 🔄 fallback seguro (SIN usar ref)
                                 ancho = page.rect.width
                                 alto = page.rect.height
                                 rect_firma = fitz.Rect(
-                                    ancho * 0.55,
-                                    alto * 0.65,
-                                    ancho * 0.85,
-                                    alto * 0.85
+                                    ancho * 0.55,  
+                                    alto * 0.65,   
+                                    ancho * 0.85,  
+                                    alto * 0.85   
                                 )
 
-                            page.insert_image(rect_firma, filename=ruta_firma)
+                            page.insert_image(
+                                rect_firma,
+                                filename=ruta_firma,
+                            )
 
                             os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{area}/{arc}")
@@ -354,3 +322,78 @@ else:
 
                         else:
                             st.error(f"No se encontró la firma en: {ruta_firma}")
+
+                motivo = st.text_input("Motivo", key=f"m{arc}")
+
+                if st.button("Rechazar", key=f"r{arc}"):
+
+                    if motivo:
+                        os.makedirs(f"reservas/rechazados/{area}", exist_ok=True)
+                        shutil.move(ruta, f"reservas/rechazados/{area}/{arc}")
+
+                        with open(f"reservas/rechazados/{area}/{arc}.json","w") as f:
+                            json.dump({"motivo":motivo},f)
+
+                        st.rerun()
+
+    # ================= ALMACÉN =================
+    elif rol == "almacen":
+
+        st.header("📦 Gestión de Documentos")
+
+        col1, col2 = st.columns([5,1])
+
+        with col1:
+            area = st.selectbox("Área", areas)
+
+        with col2:
+            if st.button("🔄", key="refresh_almacen"):
+                st.rerun()
+
+        vista = st.radio("Vista", ["Firmados","Archivados"])
+
+        carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
+        os.makedirs(carpeta, exist_ok=True)
+
+        archivos = os.listdir(carpeta)
+
+        if not archivos:
+            st.info("No hay documentos")
+        else:
+
+            if vista == "Archivados":
+                if st.button("🧹 Borrar todos los archivados"):
+                    for f in archivos:
+                        os.remove(f"{carpeta}/{f}")
+                    st.rerun()
+
+            for f in archivos:
+
+                ruta = f"{carpeta}/{f}"
+
+                if vista == "Firmados":
+                    col1,col2,col3,col4 = st.columns([4,1,1,1])
+                else:
+                    col1,col2,col3 = st.columns([5,1,1])
+
+                col1.write(f)
+
+                with open(ruta,"rb") as file:
+                    col2.download_button("⬇️", file, file_name=f)
+
+                if vista == "Firmados":
+
+                    if col3.button("📁", key=f"a{f}"):
+                        os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
+                        shutil.move(ruta, f"reservas/archivo/{area}/{f}")
+                        st.rerun()
+
+                    if col4.button("🗑️", key=f"del_f{f}"):
+                        os.remove(ruta)
+                        st.rerun()
+
+                else:
+
+                    if col3.button("🗑️", key=f"del_a{f}"):
+                        os.remove(ruta)
+                        st.rerun()     
