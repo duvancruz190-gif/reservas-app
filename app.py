@@ -36,9 +36,9 @@ areas = ["Producción","Calidad","Mantenimiento","Logística",
          "Marketing","Financiera","Almacén"]
 
 usuarios = {
-    "usuario":{"password":"123","rol":"Usuario"},
-    "ingeniero":{"password":"999","rol":"Ingeniero"},
-    "almacen":{"password":"000","rol":"Almacen"}
+    "usuario":{"password":"123","rol":"usuario"},
+    "ingeniero":{"password":"999","rol":"ingeniero"},
+    "almacen":{"password":"000","rol":"almacen"}
 }
 
 firmas_contrasena = {
