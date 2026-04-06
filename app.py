@@ -42,7 +42,7 @@ usuarios = {
 }
 
 firmas_contrasena = {
-    "Producción":{"archivo":"reservas/firmas/Imagen1.png","password":"1234"},
+    "Producción":{"archivo":"reservas/firmas/carlos_alfonso.jpeg","password":"1234"},
 }
 
 if "login" not in st.session_state:
@@ -119,7 +119,7 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
-        # -------- ENVÍO --------
+        # ---- ENVÍO ----
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
@@ -151,7 +151,7 @@ else:
                     st.session_state.upload_key += 1
                     st.rerun()
 
-        # -------- HISTORIAL --------
+        # ---- HISTORIAL ----
         elif st.session_state.pagina == "historial":
 
             st.title("📄 Historial")
@@ -180,7 +180,7 @@ else:
                         os.remove(f"reservas/enviados/{a}/{f}")
                         st.rerun()
 
-        # -------- RECHAZADOS --------
+        # ---- RECHAZADOS ----
         elif st.session_state.pagina == "rechazados":
 
             st.title("📛 Archivos Rechazados")
@@ -246,18 +246,25 @@ else:
 
                     if pw == firmas_contrasena.get(area,{}).get("password"):
 
-                        doc = fitz.open(ruta)
-                        page = doc[0]
-                        rect = fitz.Rect(200,700,450,800)
+                        ruta_firma = firmas_contrasena[area]["archivo"]
 
-                        page.insert_image(rect, filename=firmas_contrasena[area]["archivo"])
+                        if os.path.exists(ruta_firma):
 
-                        os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
-                        doc.save(f"reservas/firmadas/{area}/{arc}")
-                        doc.close()
+                            doc = fitz.open(ruta)
+                            page = doc[0]
+                            rect = fitz.Rect(200,700,450,800)
 
-                        os.remove(ruta)
-                        st.rerun()
+                            page.insert_image(rect, filename=ruta_firma)
+
+                            os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
+                            doc.save(f"reservas/firmadas/{area}/{arc}")
+                            doc.close()
+
+                            os.remove(ruta)
+                            st.rerun()
+
+                        else:
+                            st.error(f"No se encontró la firma en: {ruta_firma}")
 
                 # RECHAZAR
                 motivo = st.text_input("Motivo", key=f"m{arc}")
@@ -286,18 +293,43 @@ else:
 
         archivos = os.listdir(carpeta)
 
-        for f in archivos:
+        if not archivos:
+            st.info("No hay documentos")
+        else:
 
-            ruta = f"{carpeta}/{f}"
-            col1,col2,col3 = st.columns([4,1,1])
-
-            col1.write(f)
-
-            with open(ruta,"rb") as file:
-                col2.download_button("⬇️", file, file_name=f)
-
-            if vista=="Firmados":
-                if col3.button("📁", key=f"a{f}"):
-                    os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
-                    shutil.move(ruta, f"reservas/archivo/{area}/{f}")
+            if vista == "Archivados":
+                if st.button("🧹 Borrar todos los archivados"):
+                    for f in archivos:
+                        os.remove(f"{carpeta}/{f}")
                     st.rerun()
+
+            for f in archivos:
+
+                ruta = f"{carpeta}/{f}"
+
+                if vista == "Firmados":
+                    col1,col2,col3,col4 = st.columns([4,1,1,1])
+                else:
+                    col1,col2,col3 = st.columns([5,1,1])
+
+                col1.write(f)
+
+                with open(ruta,"rb") as file:
+                    col2.download_button("⬇️", file, file_name=f)
+
+                if vista == "Firmados":
+
+                    if col3.button("📁", key=f"a{f}"):
+                        os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
+                        shutil.move(ruta, f"reservas/archivo/{area}/{f}")
+                        st.rerun()
+
+                    if col4.button("🗑️", key=f"del_f{f}"):
+                        os.remove(ruta)
+                        st.rerun()
+
+                else:
+
+                    if col3.button("🗑️", key=f"del_a{f}"):
+                        os.remove(ruta)
+                        st.rerun()
