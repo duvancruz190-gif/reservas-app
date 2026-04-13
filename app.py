@@ -179,6 +179,11 @@ else:
 
                 st.write(f"📄 Total: {len(archivos_totales)}")
 
+                if st.button("🧹 Borrar todo"):
+                    for a,f in archivos_totales:
+                        os.remove(f"reservas/enviados/{a}/{f}")
+                    st.rerun()
+
                 for a,f in archivos_totales:
                     col1,col2 = st.columns([6,1])
                     col1.write(f"{f} ({a})")
@@ -214,12 +219,31 @@ else:
                 st.info("No hay rechazados")
             else:
 
+                if st.button("🧹 Borrar todos"):
+                    for a,f in rechazados:
+                        os.remove(f"reservas/rechazados/{a}/{f}")
+                        json_path = f"reservas/rechazados/{a}/{f}.json"
+                        if os.path.exists(json_path):
+                            os.remove(json_path)
+                    st.rerun()
+
                 for a,f in rechazados:
+
+                    motivo = "Sin motivo"
+                    ruta_json = f"reservas/rechazados/{a}/{f}.json"
+
+                    if os.path.exists(ruta_json):
+                        with open(ruta_json) as ff:
+                            motivo = json.load(ff)["motivo"]
+
                     col1,col2 = st.columns([6,1])
                     col1.warning(f"{f} ({a})")
+                    col1.write(f"Motivo: {motivo}")
 
                     if col2.button("🗑️", key=f"rech_{a}_{f}"):
                         os.remove(f"reservas/rechazados/{a}/{f}")
+                        if os.path.exists(ruta_json):
+                            os.remove(ruta_json)
                         st.rerun()
 
     # ================= INGENIERO =================
@@ -227,7 +251,15 @@ else:
 
         st.header("✍️ Revisión y Firma")
 
-        area = st.selectbox("Área", areas)
+        col1, col2 = st.columns([5,1])
+
+        with col1:
+            area = st.selectbox("Área", areas)
+
+        with col2:
+            if st.button("🔄"):
+                st.rerun()
+
         carpeta = f"reservas/pendientes/{area}"
         archivos = os.listdir(carpeta) if os.path.exists(carpeta) else []
 
@@ -260,22 +292,53 @@ else:
                                     ref = coincidencias[0]
                                     pagina_objetivo = page
 
+                                    lineas_validas = []
+
+                                    for d in page.get_drawings():
+                                        for item in d["items"]:
+                                            if item[0] == "l":
+                                                p1, p2 = item[1], item[2]
+                                                x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
+
+                                                if abs(y1 - y2) < 2:
+                                                    if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
+                                                        lineas_validas.append((x1, y1, x2, y2))
+
                                     ancho_firma = 120
                                     alto_firma = 50
 
-                                    rect_firma = fitz.Rect(
-                                        ref.x0,
-                                        ref.y1 + 10,
-                                        ref.x0 + ancho_firma,
-                                        ref.y1 + 10 + alto_firma
-                                    )
+                                    if lineas_validas:
+                                        x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
+                                        ancho_linea = x2 - x1
+
+                                        # 🔥 lógica inteligente
+                                        if ancho_firma <= ancho_linea:
+                                            rect_firma = fitz.Rect(
+                                                x1,
+                                                y1 - alto_firma - 5,
+                                                x1 + ancho_firma,
+                                                y1 - 5
+                                            )
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x1,
+                                                y1 + 10,
+                                                x1 + ancho_firma,
+                                                y1 + 10 + alto_firma
+                                            )
+                                    else:
+                                        rect_firma = fitz.Rect(
+                                            ref.x0,
+                                            ref.y1 + 10,
+                                            ref.x0 + ancho_firma,
+                                            ref.y1 + 10 + alto_firma
+                                        )
 
                                     break
 
                             if rect_firma is None:
                                 page = doc[0]
                                 pagina_objetivo = page
-
                                 rect_firma = fitz.Rect(
                                     page.rect.width * 0.6,
                                     page.rect.height * 0.7,
@@ -293,26 +356,77 @@ else:
                             st.success("✅ Documento firmado correctamente")
                             st.rerun()
 
+                motivo = st.text_input("Motivo", key=f"m{arc}")
+
+                if st.button("Rechazar", key=f"r{arc}"):
+
+                    if motivo:
+                        os.makedirs(f"reservas/rechazados/{area}", exist_ok=True)
+                        shutil.move(ruta, f"reservas/rechazados/{area}/{arc}")
+
+                        with open(f"reservas/rechazados/{area}/{arc}.json","w") as f:
+                            json.dump({"motivo":motivo},f)
+
+                        st.rerun()
+
     # ================= ALMACÉN =================
     elif rol == "almacen":
 
         st.header("📦 Gestión de Documentos")
 
-        area = st.selectbox("Área", areas)
-        carpeta = f"reservas/firmadas/{area}"
-        archivos = os.listdir(carpeta) if os.path.exists(carpeta) else []
+        col1, col2 = st.columns([5,1])
 
-        for f in archivos:
-            ruta = f"{carpeta}/{f}"
+        with col1:
+            area = st.selectbox("Área", areas)
 
-            col1,col2,col3 = st.columns([4,1,1])
-
-            col1.write(f)
-
-            with open(ruta,"rb") as file:
-                col2.download_button("⬇️", file, file_name=f)
-
-            if col3.button("📁", key=f"a{f}"):
-                os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
-                shutil.move(ruta, f"reservas/archivo/{area}/{f}")
+        with col2:
+            if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
+
+        vista = st.radio("Vista", ["Firmados","Archivados"])
+
+        carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
+        os.makedirs(carpeta, exist_ok=True)
+
+        archivos = os.listdir(carpeta)
+
+        if not archivos:
+            st.info("No hay documentos")
+        else:
+
+            if vista == "Archivados":
+                if st.button("🧹 Borrar todos los archivados"):
+                    for f in archivos:
+                        os.remove(f"{carpeta}/{f}")
+                    st.rerun()
+
+            for f in archivos:
+
+                ruta = f"{carpeta}/{f}"
+
+                if vista == "Firmados":
+                    col1,col2,col3,col4 = st.columns([4,1,1,1])
+                else:
+                    col1,col2,col3 = st.columns([5,1,1])
+
+                col1.write(f)
+
+                with open(ruta,"rb") as file:
+                    col2.download_button("⬇️", file, file_name=f)
+
+                if vista == "Firmados":
+
+                    if col3.button("📁", key=f"a{f}"):
+                        os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
+                        shutil.move(ruta, f"reservas/archivo/{area}/{f}")
+                        st.rerun()
+
+                    if col4.button("🗑️", key=f"del_f{f}"):
+                        os.remove(ruta)
+                        st.rerun()
+
+                else:
+
+                    if col3.button("🗑️", key=f"del_a{f}"):
+                        os.remove(ruta)
+                        st.rerun()
