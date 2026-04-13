@@ -344,8 +344,7 @@ else:
         ref.x0 + ancho_firma,
         ref.y1 + 10 + alto_firma
     )
-
-                                    break
+break
 
                             if rect_firma is None:
                                 page = doc[0]
