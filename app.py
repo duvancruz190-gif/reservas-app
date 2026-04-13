@@ -304,45 +304,37 @@ else:
                                                     if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
                                                         lineas_validas.append((x1, y1, x2, y2))
 
-ancho_firma = 120
-alto_firma = 50
+                                    ancho_firma = 120
+                                    alto_firma = 50
 
-if lineas_validas:
-    x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
+                                    if lineas_validas:
+                                        x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
 
-    ancho_linea = x2 - x1
+                                        ancho_linea = x2 - x1
+                                        x_centro = x1 + (ancho_linea / 2)
+                                        x_inicio = x_centro - (ancho_firma / 2)
 
-    # 🔥 CENTRAR FIRMA EN LA LÍNEA
-    x_centro_linea = x1 + (ancho_linea / 2)
-    x_inicio_firma = x_centro_linea - (ancho_firma / 2)
-
-    # ✅ SI CABE → ARRIBA Y CENTRADA
-    if ancho_firma <= ancho_linea:
-
-        rect_firma = fitz.Rect(
-            x_inicio_firma,
-            y1 - alto_firma - 5,   # 👈 arriba de la línea
-            x_inicio_firma + ancho_firma,
-            y1 - 5
-        )
-
-    # ❌ NO CABE → ABAJO
-    else:
-        rect_firma = fitz.Rect(
-            x_inicio_firma,
-            y1 + 10,
-            x_inicio_firma + ancho_firma,
-            y1 + 10 + alto_firma
-        )
-
-else:
-    # fallback
-    rect_firma = fitz.Rect(
-        ref.x0,
-        ref.y1 + 10,
-        ref.x0 + ancho_firma,
-        ref.y1 + 10 + alto_firma
-    )
+                                        if ancho_firma <= ancho_linea:
+                                            rect_firma = fitz.Rect(
+                                                x_inicio,
+                                                y1 - alto_firma - 5,
+                                                x_inicio + ancho_firma,
+                                                y1 - 5
+                                            )
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x_inicio,
+                                                y1 + 10,
+                                                x_inicio + ancho_firma,
+                                                y1 + 10 + alto_firma
+                                            )
+                                    else:
+                                        rect_firma = fitz.Rect(
+                                            ref.x0,
+                                            ref.y1 + 10,
+                                            ref.x0 + ancho_firma,
+                                            ref.y1 + 10 + alto_firma
+                                        )
 
                                     break
 
