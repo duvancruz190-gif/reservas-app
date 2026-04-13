@@ -120,11 +120,9 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
-        # ---- ENVÍO ----
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
-
             area = st.selectbox("Área", areas)
 
             archivos = st.file_uploader(
@@ -152,116 +150,12 @@ else:
                     st.session_state.upload_key += 1
                     st.rerun()
 
-        # ---- HISTORIAL ----
-        elif st.session_state.pagina == "historial":
-
-            st.title("📄 Historial")
-
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-
-            archivos_totales = []
-
-            if area_sel == "Todas":
-                for a in areas:
-                    ruta = f"reservas/enviados/{a}"
-                    if os.path.exists(ruta):
-                        for f in os.listdir(ruta):
-                            archivos_totales.append((a,f))
-            else:
-                ruta = f"reservas/enviados/{area_sel}"
-                if os.path.exists(ruta):
-                    for f in os.listdir(ruta):
-                        archivos_totales.append((area_sel,f))
-
-            if not archivos_totales:
-                st.info("No hay archivos")
-            else:
-
-                st.write(f"📄 Total: {len(archivos_totales)}")
-
-                if st.button("🧹 Borrar todo"):
-                    for a,f in archivos_totales:
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                    st.rerun()
-
-                for a,f in archivos_totales:
-                    col1,col2 = st.columns([6,1])
-                    col1.write(f"{f} ({a})")
-
-                    if col2.button("🗑️", key=f"hist_{a}_{f}"):
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                        st.rerun()
-
-        # ---- RECHAZADOS ----
-        elif st.session_state.pagina == "rechazados":
-
-            st.title("📛 Archivos Rechazados")
-
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-
-            rechazados = []
-
-            if area_sel == "Todas":
-                for a in areas:
-                    ruta = f"reservas/rechazados/{a}"
-                    if os.path.exists(ruta):
-                        for f in os.listdir(ruta):
-                            if f.endswith(".pdf"):
-                                rechazados.append((a,f))
-            else:
-                ruta = f"reservas/rechazados/{area_sel}"
-                if os.path.exists(ruta):
-                    for f in os.listdir(ruta):
-                        if f.endswith(".pdf"):
-                            rechazados.append((area_sel,f))
-
-            if not rechazados:
-                st.info("No hay rechazados")
-            else:
-
-                st.write(f"📄 Total: {len(rechazados)}")
-
-                if st.button("🧹 Borrar todos"):
-                    for a,f in rechazados:
-                        os.remove(f"reservas/rechazados/{a}/{f}")
-                        json_path = f"reservas/rechazados/{a}/{f}.json"
-                        if os.path.exists(json_path):
-                            os.remove(json_path)
-                    st.rerun()
-
-                for a,f in rechazados:
-
-                    motivo = "Sin motivo"
-                    ruta_json = f"reservas/rechazados/{a}/{f}.json"
-
-                    if os.path.exists(ruta_json):
-                        with open(ruta_json) as ff:
-                            motivo = json.load(ff)["motivo"]
-
-                    col1,col2 = st.columns([6,1])
-                    col1.warning(f"{f} ({a})")
-                    col1.write(f"Motivo: {motivo}")
-
-                    if col2.button("🗑️", key=f"rech_{a}_{f}"):
-                        os.remove(f"reservas/rechazados/{a}/{f}")
-                        if os.path.exists(ruta_json):
-                            os.remove(ruta_json)
-                        st.rerun()
-
     # ================= INGENIERO =================
     elif rol == "ingeniero":
 
         st.header("✍️ Revisión y Firma")
 
-        col1, col2 = st.columns([5,1])
-
-        with col1:
-            area = st.selectbox("Área", areas)
-
-        with col2:
-            if st.button("🔄"):
-                st.rerun()
-
+        area = st.selectbox("Área", areas)
         carpeta = f"reservas/pendientes/{area}"
         archivos = os.listdir(carpeta) if os.path.exists(carpeta) else []
 
@@ -276,254 +170,70 @@ else:
 
                 if st.button("Firmar", key=f"f{arc}"):
 
-                    if pw == firmas_contrasena.get(area,{}).get("password"):
+                    if pw == firmas_contrasena.get(area, {}).get("password"):
 
                         ruta_firma = firmas_contrasena[area]["archivo"]
 
-if os.path.exists(ruta_firma):
+                        if os.path.exists(ruta_firma):
 
-    doc = fitz.open(ruta)
-    rect_firma = None
-    pagina_objetivo = None
+                            doc = fitz.open(ruta)
+                            rect_firma = None
+                            pagina_objetivo = None
 
-    # 🔍 BUSCAR EN TODAS LAS HOJAS
-doc = fitz.open(ruta)
-rect_firma = None
-pagina_objetivo = None
+                            for i in range(len(doc)):
+                                page = doc[i]
+                                coincidencias = page.search_for("FIRMA 1")
 
-# 🔍 BUSCAR EN TODAS LAS HOJAS
-for i in range(len(doc)):
-    page = doc[i]
-    coincidencias = page.search_for("FIRMA 1")
+                                if coincidencias:
+                                    ref = coincidencias[0]
+                                    pagina_objetivo = page
 
-    if coincidencias:
-        ref = coincidencias[0]
-        pagina_objetivo = page
+                                    lineas_validas = []
 
-        lineas_validas = []
+                                    for d in page.get_drawings():
+                                        for item in d["items"]:
+                                            if item[0] == "l":
+                                                p1, p2 = item[1], item[2]
+                                                x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
 
-        for d in page.get_drawings():
-            for item in d["items"]:
-                if item[0] == "l":
-                    p1, p2 = item[1], item[2]
-                    x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
+                                                if abs(y1 - y2) < 2:
+                                                    if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
+                                                        lineas_validas.append((x1, y1, x2, y2))
 
-                    if abs(y1 - y2) < 2:
-                        if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                            lineas_validas.append((x1, y1, x2, y2))
+                                    ancho_firma = 120
+                                    alto_firma = 50
 
-        ancho_firma = 120
-        alto_firma = 50
+                                    if lineas_validas:
+                                        x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
 
-        if lineas_validas:
-            x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
+                                        rect_firma = fitz.Rect(
+                                            x1,
+                                            y1 + 10,
+                                            x1 + ancho_firma,
+                                            y1 + 10 + alto_firma
+                                        )
+                                    else:
+                                        rect_firma = fitz.Rect(
+                                            ref.x0,
+                                            ref.y1 + 10,
+                                            ref.x0 + ancho_firma,
+                                            ref.y1 + 10 + alto_firma
+                                        )
 
-            rect_firma = fitz.Rect(
-                x1,
-                y1 + 10,
-                x1 + ancho_firma,
-                y1 + 10 + alto_firma
-            )
+                                    break
 
-        else:
-            rect_firma = fitz.Rect(
-                ref.x0,
-                ref.y1 + 10,
-                ref.x0 + ancho_firma,
-                ref.y1 + 10 + alto_firma
-            )
+                            if rect_firma is None:
+                                page = doc[0]
+                                pagina_objetivo = page
 
-        break  # 🔥 IMPORTANTE
+                                rect_firma = fitz.Rect(
+                                    page.rect.width * 0.6,
+                                    page.rect.height * 0.7,
+                                    page.rect.width * 0.85,
+                                    page.rect.height * 0.9
+                                )
 
-# fallback
-if rect_firma is None:
-    page = doc[0]
-    pagina_objetivo = page
-
-    rect_firma = fitz.Rect(
-        page.rect.width * 0.6,
-        page.rect.height * 0.7,
-        page.rect.width * 0.85,
-        page.rect.height * 0.9
-    )
-
-# insertar firma
-pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
-        if coincidencias:
-            ref = coincidencias[0]
-            pagina_objetivo = page
-
-            lineas_validas = []
-
-            for d in page.get_drawings():
-                for item in d["items"]:
-                    if item[0] == "l":
-                        p1, p2 = item[1], item[2]
-                        x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
-
-                        if abs(y1 - y2) < 2:
-                            if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                                lineas_validas.append((x1, y1, x2, y2))
-
-            ancho_firma = 120
-            alto_firma = 50
-
-            if lineas_validas:
-                x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
-
-                rect_firma = fitz.Rect(
-                    x1,
-                    y1 + 10,
-                    x1 + ancho_firma,
-                    y1 + 10 + alto_firma
-                )
-
-            else:
-                rect_firma = fitz.Rect(
-                    ref.x0,
-                    ref.y1 + 10,
-                    ref.x0 + ancho_firma,
-                    ref.y1 + 10 + alto_firma
-                )
-
-            break
-
-    # 🔴 SI NO ENCUENTRA FIRMA 1
-    if rect_firma is None:
-        page = doc[0]
-        ancho = page.rect.width
-        alto = page.rect.height
-
-        rect_firma = fitz.Rect(
-            ancho * 0.6,
-            alto * 0.7,
-            ancho * 0.85,
-            alto * 0.9
-        )
-        pagina_objetivo = page
-
-    # 🖊 INSERTAR FIRMA
-    pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
-
-    os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
-    doc.save(f"reservas/firmadas/{area}/{arc}")
-    doc.close()
-
-    os.remove(ruta)
-    st.success("✅ Documento firmado correctamente")
-    st.rerun()
-
-doc = fitz.open(ruta)
-rect_firma = None
-pagina_objetivo = None
-
-# 🔍 BUSCAR EN TODAS LAS HOJAS
-for i in range(len(doc)):
-    page = doc[i]
-    coincidencias = page.search_for("FIRMA 1")
-
-    if coincidencias:
-        ref = coincidencias[0]
-        pagina_objetivo = page
-
-        # 🔎 BUSCAR LA LÍNEA
-        lineas_validas = []
-
-        for d in page.get_drawings():
-            for item in d["items"]:
-                if item[0] == "l":
-                    p1, p2 = item[1], item[2]
-                    x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
-
-                    if abs(y1 - y2) < 2:  # horizontal
-                        if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                            lineas_validas.append((x1, y1, x2, y2))
-
-        # 📏 TAMAÑO FIJO (NO SE AGRANDA)
-        ancho_firma = 120
-        alto_firma = 50
-
-        if lineas_validas:
-            x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
-
-            # 🔥 FIRMA DEBAJO DE LA LÍNEA
-            rect_firma = fitz.Rect(
-                x1,
-                y1 + 10,              # 👈 BAJAMOS LA FIRMA
-                x1 + ancho_firma,
-                y1 + 10 + alto_firma
-            )
-
-        else:
-            # fallback si no detecta línea
-            rect_firma = fitz.Rect(
-                ref.x0,
-                ref.y1 + 10,
-                ref.x0 + ancho_firma,
-                ref.y1 + 10 + alto_firma
-            )
-
-        break  # 🔥 IMPORTANTE: detener cuando la encuentre
-
-# ❌ SI NO ENCUENTRA NADA EN NINGUNA HOJA
-if rect_firma is None:
-    page = doc[0]
-    ancho = page.rect.width
-    alto = page.rect.height
-
-    rect_firma = fitz.Rect(
-        ancho * 0.6,
-        alto * 0.7,
-        ancho * 0.85,
-        alto * 0.9
-    )
-    pagina_objetivo = page
-
-# 🖊 INSERTAR FIRMA
-pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
-
-                            if coincidencias:
-                                ref = coincidencias[0]
-                                lineas_validas = []
-
-                                for d in page.get_drawings():
-                                    for item in d["items"]:
-                                        if item[0] == "l": 
-                                            p1, p2 = item[1], item[2]
-                                            x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
-
-                                            # Buscamos líneas horizontales arriba del texto "FIRMA 1"
-                                            if abs(y1 - y2) < 2:
-                                                if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                                                    lineas_validas.append((x1, y1, x2, y2))
-
-                                if lineas_validas:
-                                    # Tomar la línea más cercana al texto
-                                    x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
-                                    
-                                    ancho_linea = x2 - x1
-                                    proporcion = 0.20 if area == "Logística" else 0.25
-                                    alto_firma = ancho_linea * proporcion
-
-                                    # --- AJUSTE DE PRECISIÓN ---
-                                    # Usamos 'y1 + 5' para bajar la firma y compensar márgenes de imagen
-                                    rect_firma = fitz.Rect(
-                                        x1,             
-                                        (y1 + 5) - alto_firma, 
-                                        x2,             
-                                        y1 + 5          
-                                    )
-                                else:
-                                    # Fallback 1: Si hay texto pero no línea geométrica detectable
-                                    x_centro = (ref.x0 + ref.x1) / 2
-                                    rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 90, x_centro + 110, ref.y0 - 10)
-                            else:
-                                # Fallback 2: Si no encuentra el texto "FIRMA 1"
-                                ancho = page.rect.width
-                                alto = page.rect.height
-                                rect_firma = fitz.Rect(ancho * 0.55, alto * 0.65, ancho * 0.85, alto * 0.85)
-
-                            page.insert_image(rect_firma, filename=ruta_firma)
+                            pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
                             os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{area}/{arc}")
@@ -535,78 +245,3 @@ pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
                         else:
                             st.error(f"No se encontró la firma en: {ruta_firma}")
-
-                motivo = st.text_input("Motivo", key=f"m{arc}")
-
-                if st.button("Rechazar", key=f"r{arc}"):
-
-                    if motivo:
-                        os.makedirs(f"reservas/rechazados/{area}", exist_ok=True)
-                        shutil.move(ruta, f"reservas/rechazados/{area}/{arc}")
-
-                        with open(f"reservas/rechazados/{area}/{arc}.json","w") as f:
-                            json.dump({"motivo":motivo},f)
-
-                        st.rerun()
-
-    # ================= ALMACÉN =================
-    elif rol == "almacen":
-
-        st.header("📦 Gestión de Documentos")
-
-        col1, col2 = st.columns([5,1])
-
-        with col1:
-            area = st.selectbox("Área", areas)
-
-        with col2:
-            if st.button("🔄", key="refresh_almacen"):
-                st.rerun()
-
-        vista = st.radio("Vista", ["Firmados","Archivados"])
-
-        carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
-        os.makedirs(carpeta, exist_ok=True)
-
-        archivos = os.listdir(carpeta)
-
-        if not archivos:
-            st.info("No hay documentos")
-        else:
-
-            if vista == "Archivados":
-                if st.button("🧹 Borrar todos los archivados"):
-                    for f in archivos:
-                        os.remove(f"{carpeta}/{f}")
-                    st.rerun()
-
-            for f in archivos:
-
-                ruta = f"{carpeta}/{f}"
-
-                if vista == "Firmados":
-                    col1,col2,col3,col4 = st.columns([4,1,1,1])
-                else:
-                    col1,col2,col3 = st.columns([5,1,1])
-
-                col1.write(f)
-
-                with open(ruta,"rb") as file:
-                    col2.download_button("⬇️", file, file_name=f)
-
-                if vista == "Firmados":
-
-                    if col3.button("📁", key=f"a{f}"):
-                        os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
-                        shutil.move(ruta, f"reservas/archivo/{area}/{f}")
-                        st.rerun()
-
-                    if col4.button("🗑️", key=f"del_f{f}"):
-                        os.remove(ruta)
-                        st.rerun()
-
-                else:
-
-                    if col3.button("🗑️", key=f"del_a{f}"):
-                        os.remove(ruta)
-                        st.rerun()
