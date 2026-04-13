@@ -287,10 +287,68 @@ if os.path.exists(ruta_firma):
     pagina_objetivo = None
 
     # 🔍 BUSCAR EN TODAS LAS HOJAS
-    for i in range(len(doc)):
-        page = doc[i]
-        coincidencias = page.search_for("FIRMA 1")
+doc = fitz.open(ruta)
+rect_firma = None
+pagina_objetivo = None
 
+# 🔍 BUSCAR EN TODAS LAS HOJAS
+for i in range(len(doc)):
+    page = doc[i]
+    coincidencias = page.search_for("FIRMA 1")
+
+    if coincidencias:
+        ref = coincidencias[0]
+        pagina_objetivo = page
+
+        lineas_validas = []
+
+        for d in page.get_drawings():
+            for item in d["items"]:
+                if item[0] == "l":
+                    p1, p2 = item[1], item[2]
+                    x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
+
+                    if abs(y1 - y2) < 2:
+                        if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
+                            lineas_validas.append((x1, y1, x2, y2))
+
+        ancho_firma = 120
+        alto_firma = 50
+
+        if lineas_validas:
+            x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
+
+            rect_firma = fitz.Rect(
+                x1,
+                y1 + 10,
+                x1 + ancho_firma,
+                y1 + 10 + alto_firma
+            )
+
+        else:
+            rect_firma = fitz.Rect(
+                ref.x0,
+                ref.y1 + 10,
+                ref.x0 + ancho_firma,
+                ref.y1 + 10 + alto_firma
+            )
+
+        break  # 🔥 IMPORTANTE
+
+# fallback
+if rect_firma is None:
+    page = doc[0]
+    pagina_objetivo = page
+
+    rect_firma = fitz.Rect(
+        page.rect.width * 0.6,
+        page.rect.height * 0.7,
+        page.rect.width * 0.85,
+        page.rect.height * 0.9
+    )
+
+# insertar firma
+pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
         if coincidencias:
             ref = coincidencias[0]
             pagina_objetivo = page
