@@ -304,37 +304,46 @@ else:
                                                     if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
                                                         lineas_validas.append((x1, y1, x2, y2))
 
-                                    ancho_firma = 120
-                                    alto_firma = 50
+ancho_firma = 120
+alto_firma = 50
 
-                                    if lineas_validas:
-                                        x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
+if lineas_validas:
+    x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
 
-                                        ancho_linea = x2 - x1
-                                        x_centro = x1 + (ancho_linea / 2)
-                                        x_inicio = x_centro - (ancho_firma / 2)
+    ancho_linea = x2 - x1
 
-                                        if ancho_firma <= ancho_linea:
-                                            rect_firma = fitz.Rect(
-                                                x_inicio,
-                                                y1 - alto_firma - 5,
-                                                x_inicio + ancho_firma,
-                                                y1 - 5
-                                            )
-                                        else:
-                                            rect_firma = fitz.Rect(
-                                                x_inicio,
-                                                y1 + 10,
-                                                x_inicio + ancho_firma,
-                                                y1 + 10 + alto_firma
-                                            )
-                                    else:
-                                        rect_firma = fitz.Rect(
-                                            ref.x0,
-                                            ref.y1 + 10,
-                                            ref.x0 + ancho_firma,
-                                            ref.y1 + 10 + alto_firma
-                                        )
+    # 🔥 CENTRAR FIRMA
+    x_centro = x1 + (ancho_linea / 2)
+    x_inicio = x_centro - (ancho_firma / 2)
+
+    # 🔥 INTENTAR ARRIBA SIEMPRE
+    y_arriba_top = y1 - alto_firma - 5
+    y_arriba_bottom = y1 - 5
+
+    # 🔍 validar que no se salga de la página
+    if y_arriba_top > 0:
+        rect_firma = fitz.Rect(
+            x_inicio,
+            y_arriba_top,
+            x_inicio + ancho_firma,
+            y_arriba_bottom
+        )
+    else:
+        # 🔻 si no cabe arriba → abajo
+        rect_firma = fitz.Rect(
+            x_inicio,
+            y1 + 10,
+            x_inicio + ancho_firma,
+            y1 + 10 + alto_firma
+        )
+
+else:
+    rect_firma = fitz.Rect(
+        ref.x0,
+        ref.y1 + 10,
+        ref.x0 + ancho_firma,
+        ref.y1 + 10 + alto_firma
+    )
 
                                     break
 
