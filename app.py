@@ -76,7 +76,6 @@ if not st.session_state.login:
 # ================= SISTEMA =================
 else:
 
-    # -------- SIDEBAR --------
     with st.sidebar:
 
         if os.path.exists("assets/ETERNITTTTT.png"):
@@ -111,7 +110,6 @@ else:
     rol = st.session_state.rol
     st.title("📋 Gestión de Reservas")
 
-    # ================= USUARIO =================
     if rol == "usuario":
 
         if "pagina" not in st.session_state:
@@ -123,7 +121,6 @@ else:
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
-
             area = st.selectbox("Área", areas)
 
             archivos = st.file_uploader(
@@ -151,110 +148,14 @@ else:
                     st.session_state.upload_key += 1
                     st.rerun()
 
-        elif st.session_state.pagina == "historial":
-
-            st.title("📄 Historial")
-
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-
-            archivos_totales = []
-
-            if area_sel == "Todas":
-                for a in areas:
-                    ruta = f"reservas/enviados/{a}"
-                    if os.path.exists(ruta):
-                        for f in os.listdir(ruta):
-                            archivos_totales.append((a,f))
-            else:
-                ruta = f"reservas/enviados/{area_sel}"
-                if os.path.exists(ruta):
-                    for f in os.listdir(ruta):
-                        archivos_totales.append((area_sel,f))
-
-            if not archivos_totales:
-                st.info("No hay archivos")
-            else:
-
-                st.write(f"📄 Total: {len(archivos_totales)}")
-
-                if st.button("🧹 Borrar todo"):
-                    for a,f in archivos_totales:
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                    st.rerun()
-
-                for a,f in archivos_totales:
-                    col1,col2 = st.columns([6,1])
-                    col1.write(f"{f} ({a})")
-
-                    if col2.button("🗑️", key=f"hist_{a}_{f}"):
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                        st.rerun()
-
-        elif st.session_state.pagina == "rechazados":
-
-            st.title("📛 Archivos Rechazados")
-
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-
-            rechazados = []
-
-            if area_sel == "Todas":
-                for a in areas:
-                    ruta = f"reservas/rechazados/{a}"
-                    if os.path.exists(ruta):
-                        for f in os.listdir(ruta):
-                            if f.endswith(".pdf"):
-                                rechazados.append((a,f))
-            else:
-                ruta = f"reservas/rechazados/{area_sel}"
-                if os.path.exists(ruta):
-                    for f in os.listdir(ruta):
-                        if f.endswith(".pdf"):
-                            rechazados.append((area_sel,f))
-
-            if not rechazados:
-                st.info("No hay rechazados")
-            else:
-
-                st.write(f"📄 Total: {len(rechazados)}")
-
-                if st.button("🧹 Borrar todos"):
-                    for a,f in rechazados:
-                        os.remove(f"reservas/rechazados/{a}/{f}")
-                        json_path = f"reservas/rechazados/{a}/{f}.json"
-                        if os.path.exists(json_path):
-                            os.remove(json_path)
-                    st.rerun()
-
-                for a,f in rechazados:
-
-                    motivo = "Sin motivo"
-                    ruta_json = f"reservas/rechazados/{a}/{f}.json"
-
-                    if os.path.exists(ruta_json):
-                        with open(ruta_json) as ff:
-                            motivo = json.load(ff)["motivo"]
-
-                    col1,col2 = st.columns([6,1])
-                    col1.warning(f"{f} ({a})")
-                    col1.write(f"Motivo: {motivo}")
-
-                    if col2.button("🗑️", key=f"rech_{a}_{f}"):
-                        os.remove(f"reservas/rechazados/{a}/{f}")
-                        if os.path.exists(ruta_json):
-                            os.remove(ruta_json)
-                        st.rerun()
-
     # ================= INGENIERO =================
     elif rol == "ingeniero":
 
         st.header("✍️ Revisión y Firma")
 
         col1, col2 = st.columns([5,1])
-
         with col1:
             area = st.selectbox("Área", areas)
-
         with col2:
             if st.button("🔄"):
                 st.rerun()
@@ -292,12 +193,9 @@ else:
                                     ref = coincidencias[0]
                                     pagina_objetivo = page
 
-                                    # 🔥 NUEVA LÓGICA CORRECTA
                                     ancho_firma = 120
                                     alto_firma = 50
-
                                     x_centro = (ref.x0 + ref.x1) / 2
-                                    y_base = ref.y1 + 15
 
                                     def hay_contenido(page, rect):
                                         texto = page.get_text("text", clip=rect)
@@ -311,26 +209,46 @@ else:
                                                         return True
                                         return False
 
-                                    for i in range(12):
+                                    # 🔼 ARRIBA
+                                    y_base_arriba = ref.y0 - 10
+
+                                    for i in range(8):
                                         rect_intento = fitz.Rect(
                                             x_centro - ancho_firma/2,
-                                            y_base,
+                                            y_base_arriba - alto_firma,
                                             x_centro + ancho_firma/2,
-                                            y_base + alto_firma
+                                            y_base_arriba
                                         )
 
                                         if not hay_contenido(page, rect_intento):
                                             rect_firma = rect_intento
                                             break
 
-                                        y_base += 12
+                                        y_base_arriba -= 10
                                     else:
-                                        rect_firma = fitz.Rect(
-                                            x_centro - ancho_firma/2,
-                                            ref.y1 + 40,
-                                            x_centro + ancho_firma/2,
-                                            ref.y1 + 40 + alto_firma
-                                        )
+                                        # 🔽 ABAJO
+                                        y_base_abajo = ref.y1 + 15
+
+                                        for i in range(12):
+                                            rect_intento = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                y_base_abajo,
+                                                x_centro + ancho_firma/2,
+                                                y_base_abajo + alto_firma
+                                            )
+
+                                            if not hay_contenido(page, rect_intento):
+                                                rect_firma = rect_intento
+                                                break
+
+                                            y_base_abajo += 12
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                ref.y1 + 40,
+                                                x_centro + ancho_firma/2,
+                                                ref.y1 + 40 + alto_firma
+                                            )
 
                                     break
 
@@ -338,7 +256,6 @@ else:
                                 pagina_objetivo = doc[-1]
                                 ancho = pagina_objetivo.rect.width
                                 alto = pagina_objetivo.rect.height
-
                                 rect_firma = fitz.Rect(
                                     ancho * 0.55,
                                     alto * 0.65,
@@ -355,9 +272,6 @@ else:
                             os.remove(ruta)
                             st.success("✅ Documento firmado correctamente")
                             st.rerun()
-
-                        else:
-                            st.error(f"No se encontró la firma en: {ruta_firma}")
 
                 motivo = st.text_input("Motivo", key=f"m{arc}")
 
@@ -378,10 +292,8 @@ else:
         st.header("📦 Gestión de Documentos")
 
         col1, col2 = st.columns([5,1])
-
         with col1:
             area = st.selectbox("Área", areas)
-
         with col2:
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
@@ -393,43 +305,19 @@ else:
 
         archivos = os.listdir(carpeta)
 
-        if not archivos:
-            st.info("No hay documentos")
-        else:
+        for f in archivos:
+            ruta = f"{carpeta}/{f}"
+            col1,col2,col3,col4 = st.columns([4,1,1,1])
+            col1.write(f)
 
-            if vista == "Archivados":
-                if st.button("🧹 Borrar todos los archivados"):
-                    for f in archivos:
-                        os.remove(f"{carpeta}/{f}")
-                    st.rerun()
+            with open(ruta,"rb") as file:
+                col2.download_button("⬇️", file, file_name=f)
 
-            for f in archivos:
+            if col3.button("📁", key=f"a{f}"):
+                os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
+                shutil.move(ruta, f"reservas/archivo/{area}/{f}")
+                st.rerun()
 
-                ruta = f"{carpeta}/{f}"
-
-                if vista == "Firmados":
-                    col1,col2,col3,col4 = st.columns([4,1,1,1])
-                else:
-                    col1,col2,col3 = st.columns([5,1,1])
-
-                col1.write(f)
-
-                with open(ruta,"rb") as file:
-                    col2.download_button("⬇️", file, file_name=f)
-
-                if vista == "Firmados":
-
-                    if col3.button("📁", key=f"a{f}"):
-                        os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
-                        shutil.move(ruta, f"reservas/archivo/{area}/{f}")
-                        st.rerun()
-
-                    if col4.button("🗑️", key=f"del_f{f}"):
-                        os.remove(ruta)
-                        st.rerun()
-
-                else:
-
-                    if col3.button("🗑️", key=f"del_a{f}"):
-                        os.remove(ruta)
-                        st.rerun()
+            if col4.button("🗑️", key=f"del_f{f}"):
+                os.remove(ruta)
+                st.rerun()
