@@ -276,61 +276,71 @@ else:
 
                 if st.button("Firmar", key=f"f{arc}"):
 
-                    if pw == firmas_contrasena.get(area,{}).get("password"):
+                    datos_firma = firmas_contrasena.get(area)
 
-                        ruta_firma = firmas_contrasena[area]["archivo"]
+                    if datos_firma and pw == datos_firma.get("password"):
+
+                        ruta_firma = datos_firma["archivo"]
 
                         if os.path.exists(ruta_firma):
 
                             doc = fitz.open(ruta)
-                            page = doc[0]
                             rect_firma = None
+                            pagina_objetivo = None
 
-                            # --- BÚSQUEDA DINÁMICA DE LA LÍNEA ---
-                            coincidencias = page.search_for("FIRMA 1")
+                            # 🔍 BUSCAR EN TODAS LAS HOJAS
+                            for page in doc:
+                                coincidencias = page.search_for("FIRMA 1")
 
-                            if coincidencias:
-                                ref = coincidencias[0]
-                                lineas_validas = []
+                                if coincidencias:
+                                    ref = coincidencias[0]
+                                    pagina_objetivo = page
 
-                                for d in page.get_drawings():
-                                    for item in d["items"]:
-                                        if item[0] == "l": 
-                                            p1, p2 = item[1], item[2]
-                                            x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
+                                    lineas_validas = []
 
-                                            # Buscamos líneas horizontales arriba del texto "FIRMA 1"
-                                            if abs(y1 - y2) < 2:
-                                                if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                                                    lineas_validas.append((x1, y1, x2, y2))
+                                    for d in page.get_drawings():
+                                        for item in d["items"]:
+                                            if item[0] == "l":
+                                                p1, p2 = item[1], item[2]
+                                                x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
 
-                                if lineas_validas:
-                                    # Tomar la línea más cercana al texto
-                                    x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
-                                    
-                                    ancho_linea = x2 - x1
-                                    proporcion = 0.20 if area == "Logística" else 0.25
-                                    alto_firma = ancho_linea * proporcion
+                                                if abs(y1 - y2) < 2:
+                                                    if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
+                                                        lineas_validas.append((x1, y1, x2, y2))
 
-                                    # --- AJUSTE DE PRECISIÓN ---
-                                    # Usamos 'y1 + 5' para bajar la firma y compensar márgenes de imagen
-                                    rect_firma = fitz.Rect(
-                                        x1,             
-                                        (y1 + 5) - alto_firma, 
-                                        x2,             
-                                        y1 + 5          
-                                    )
-                                else:
-                                    # Fallback 1: Si hay texto pero no línea geométrica detectable
-                                    x_centro = (ref.x0 + ref.x1) / 2
-                                    rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 90, x_centro + 110, ref.y0 - 10)
-                            else:
-                                # Fallback 2: Si no encuentra el texto "FIRMA 1"
-                                ancho = page.rect.width
-                                alto = page.rect.height
-                                rect_firma = fitz.Rect(ancho * 0.55, alto * 0.65, ancho * 0.85, alto * 0.85)
+                                    if lineas_validas:
+                                        x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
 
-                            page.insert_image(rect_firma, filename=ruta_firma)
+                                        ancho_linea = x2 - x1
+                                        proporcion = 0.20 if area == "Logística" else 0.25
+                                        alto_firma = ancho_linea * proporcion
+
+                                        rect_firma = fitz.Rect(
+                                            x1,
+                                            (y1 + 5) - alto_firma,
+                                            x2,
+                                            y1 + 5
+                                        )
+                                    else:
+                                        x_centro = (ref.x0 + ref.x1) / 2
+                                        rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 90, x_centro + 110, ref.y0 - 10)
+
+                                    break
+
+                            # fallback
+                            if not pagina_objetivo:
+                                pagina_objetivo = doc[-1]
+                                ancho = pagina_objetivo.rect.width
+                                alto = pagina_objetivo.rect.height
+
+                                rect_firma = fitz.Rect(
+                                    ancho * 0.55,
+                                    alto * 0.65,
+                                    ancho * 0.85,
+                                    alto * 0.85
+                                )
+
+                            pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
                             os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{area}/{arc}")
