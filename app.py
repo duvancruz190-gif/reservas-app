@@ -120,7 +120,6 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
-        # ---- ENVÍO ----
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
@@ -152,7 +151,6 @@ else:
                     st.session_state.upload_key += 1
                     st.rerun()
 
-        # ---- HISTORIAL ----
         elif st.session_state.pagina == "historial":
 
             st.title("📄 Historial")
@@ -192,7 +190,6 @@ else:
                         os.remove(f"reservas/enviados/{a}/{f}")
                         st.rerun()
 
-        # ---- RECHAZADOS ----
         elif st.session_state.pagina == "rechazados":
 
             st.title("📛 Archivos Rechazados")
@@ -288,7 +285,6 @@ else:
                             rect_firma = None
                             pagina_objetivo = None
 
-                            # 🔍 BUSCAR EN TODAS LAS HOJAS
                             for page in doc:
                                 coincidencias = page.search_for("FIRMA 1")
 
@@ -311,23 +307,49 @@ else:
                                     if lineas_validas:
                                         x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
 
-                                        ancho_linea = x2 - x1
-                                        proporcion = 0.20 if area == "Logística" else 0.25
-                                        alto_firma = ancho_linea * proporcion
+                                        ancho_firma = x2 - x1
+                                        alto_firma = ancho_firma * 0.25
+                                        y_base = y1 + 5
 
-                                        rect_firma = fitz.Rect(
-                                            x1,
-                                            (y1 + 5) - alto_firma,
-                                            x2,
-                                            y1 + 5
-                                        )
+                                        def hay_contenido(page, rect):
+                                            texto = page.get_text("text", clip=rect)
+                                            if texto.strip():
+                                                return True
+                                            for d in page.get_drawings():
+                                                for item in d["items"]:
+                                                    if item[0] == "l":
+                                                        p1, p2 = item[1], item[2]
+                                                        if rect.intersects(fitz.Rect(p1, p2)):
+                                                            return True
+                                            return False
+
+                                        for i in range(10):
+                                            rect_intento = fitz.Rect(
+                                                x1,
+                                                y_base - alto_firma,
+                                                x1 + ancho_firma,
+                                                y_base
+                                            )
+
+                                            if not hay_contenido(page, rect_intento):
+                                                rect_firma = rect_intento
+                                                break
+
+                                            y_base += 15
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x1,
+                                                y1 + 20,
+                                                x1 + ancho_firma,
+                                                y1 + 20 + alto_firma
+                                            )
+
                                     else:
                                         x_centro = (ref.x0 + ref.x1) / 2
                                         rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 90, x_centro + 110, ref.y0 - 10)
 
                                     break
 
-                            # fallback
                             if not pagina_objetivo:
                                 pagina_objetivo = doc[-1]
                                 ancho = pagina_objetivo.rect.width
