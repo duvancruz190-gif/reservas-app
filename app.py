@@ -292,61 +292,45 @@ else:
                                     ref = coincidencias[0]
                                     pagina_objetivo = page
 
-                                    lineas_validas = []
+                                    # 🔥 NUEVA LÓGICA CORRECTA
+                                    ancho_firma = 120
+                                    alto_firma = 50
 
-                                    for d in page.get_drawings():
-                                        for item in d["items"]:
-                                            if item[0] == "l":
-                                                p1, p2 = item[1], item[2]
-                                                x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
+                                    x_centro = (ref.x0 + ref.x1) / 2
+                                    y_base = ref.y1 + 15
 
-                                                if abs(y1 - y2) < 2:
-                                                    if y1 < ref.y0 and abs(y1 - ref.y0) < 60:
-                                                        lineas_validas.append((x1, y1, x2, y2))
+                                    def hay_contenido(page, rect):
+                                        texto = page.get_text("text", clip=rect)
+                                        if texto.strip():
+                                            return True
+                                        for d in page.get_drawings():
+                                            for item in d["items"]:
+                                                if item[0] == "l":
+                                                    p1, p2 = item[1], item[2]
+                                                    if rect.intersects(fitz.Rect(p1, p2)):
+                                                        return True
+                                        return False
 
-                                    if lineas_validas:
-                                        x1, y1, x2, y2 = sorted(lineas_validas, key=lambda l: abs(l[1] - ref.y0))[0]
+                                    for i in range(12):
+                                        rect_intento = fitz.Rect(
+                                            x_centro - ancho_firma/2,
+                                            y_base,
+                                            x_centro + ancho_firma/2,
+                                            y_base + alto_firma
+                                        )
 
-                                        ancho_firma = x2 - x1
-                                        alto_firma = ancho_firma * 0.25
-                                        y_base = y1 + 5
+                                        if not hay_contenido(page, rect_intento):
+                                            rect_firma = rect_intento
+                                            break
 
-                                        def hay_contenido(page, rect):
-                                            texto = page.get_text("text", clip=rect)
-                                            if texto.strip():
-                                                return True
-                                            for d in page.get_drawings():
-                                                for item in d["items"]:
-                                                    if item[0] == "l":
-                                                        p1, p2 = item[1], item[2]
-                                                        if rect.intersects(fitz.Rect(p1, p2)):
-                                                            return True
-                                            return False
-
-                                        for i in range(10):
-                                            rect_intento = fitz.Rect(
-                                                x1,
-                                                y_base - alto_firma,
-                                                x1 + ancho_firma,
-                                                y_base
-                                            )
-
-                                            if not hay_contenido(page, rect_intento):
-                                                rect_firma = rect_intento
-                                                break
-
-                                            y_base += 15
-                                        else:
-                                            rect_firma = fitz.Rect(
-                                                x1,
-                                                y1 + 20,
-                                                x1 + ancho_firma,
-                                                y1 + 20 + alto_firma
-                                            )
-
+                                        y_base += 12
                                     else:
-                                        x_centro = (ref.x0 + ref.x1) / 2
-                                        rect_firma = fitz.Rect(x_centro - 110, ref.y0 - 90, x_centro + 110, ref.y0 - 10)
+                                        rect_firma = fitz.Rect(
+                                            x_centro - ancho_firma/2,
+                                            ref.y1 + 40,
+                                            x_centro + ancho_firma/2,
+                                            ref.y1 + 40 + alto_firma
+                                        )
 
                                     break
 
