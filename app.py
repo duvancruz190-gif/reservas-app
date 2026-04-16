@@ -391,7 +391,7 @@ else:
                         st.rerun()
 
 # ================= ALMACÉN =================
-elif rol == "almacen":
+    elif rol == "almacen":
 
     st.header("📦 Gestión de Documentos")
 
