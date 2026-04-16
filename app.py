@@ -119,7 +119,6 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
-        # ===== ENVÍO =====
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
@@ -150,7 +149,6 @@ else:
                     st.session_state.upload_key += 1
                     st.rerun()
 
-        # ===== HISTORIAL =====
         elif st.session_state.pagina == "historial":
 
             st.header("📄 Historial")
@@ -190,7 +188,6 @@ else:
                         os.remove(f"reservas/enviados/{a}/{f}")
                         st.rerun()
 
-        # ===== RECHAZADOS =====
         elif st.session_state.pagina == "rechazados":
 
             st.header("📛 Archivos Rechazados")
@@ -253,26 +250,37 @@ else:
 
         col1, col2 = st.columns([5,1])
         with col1:
-            area = st.selectbox("Área", areas)
+            area = st.selectbox("Área", ["Todas"] + areas)
         with col2:
             if st.button("🔄"):
                 st.rerun()
 
-        carpeta = f"reservas/pendientes/{area}"
-        archivos = os.listdir(carpeta) if os.path.exists(carpeta) else []
+        archivos = []
 
-        for arc in archivos:
+        if area == "Todas":
+            for a in areas:
+                carpeta = f"reservas/pendientes/{a}"
+                if os.path.exists(carpeta):
+                    for f in os.listdir(carpeta):
+                        archivos.append((a, f))
+        else:
+            carpeta = f"reservas/pendientes/{area}"
+            if os.path.exists(carpeta):
+                for f in os.listdir(carpeta):
+                    archivos.append((area, f))
 
-            with st.expander(arc):
+        for a, arc in archivos:
 
-                ruta = f"{carpeta}/{arc}"
+            with st.expander(f"{arc} ({a})"):
+
+                ruta = f"reservas/pendientes/{a}/{arc}"
                 pdf_viewer(ruta)
 
                 pw = st.text_input("Contraseña", type="password", key=arc)
 
                 if st.button("Firmar", key=f"f{arc}"):
 
-                    datos_firma = firmas_contrasena.get(area)
+                    datos_firma = firmas_contrasena.get(a)
 
                     if datos_firma and pw == datos_firma.get("password"):
 
@@ -361,8 +369,8 @@ else:
 
                             pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
-                            os.makedirs(f"reservas/firmadas/{area}", exist_ok=True)
-                            doc.save(f"reservas/firmadas/{area}/{arc}")
+                            os.makedirs(f"reservas/firmadas/{a}", exist_ok=True)
+                            doc.save(f"reservas/firmadas/{a}/{arc}")
                             doc.close()
 
                             os.remove(ruta)
@@ -374,10 +382,10 @@ else:
                 if st.button("Rechazar", key=f"r{arc}"):
 
                     if motivo:
-                        os.makedirs(f"reservas/rechazados/{area}", exist_ok=True)
-                        shutil.move(ruta, f"reservas/rechazados/{area}/{arc}")
+                        os.makedirs(f"reservas/rechazados/{a}", exist_ok=True)
+                        shutil.move(ruta, f"reservas/rechazados/{a}/{arc}")
 
-                        with open(f"reservas/rechazados/{area}/{arc}.json","w") as f:
+                        with open(f"reservas/rechazados/{a}/{arc}.json","w") as f:
                             json.dump({"motivo":motivo},f)
 
                         st.rerun()
@@ -389,31 +397,46 @@ else:
 
         col1, col2 = st.columns([5,1])
         with col1:
-            area = st.selectbox("Área", areas)
+            area = st.selectbox("Área", ["Todas"] + areas)
         with col2:
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
 
         vista = st.radio("Vista", ["Firmados","Archivados"])
 
-        carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
-        os.makedirs(carpeta, exist_ok=True)
+        archivos = []
 
-        archivos = os.listdir(carpeta)
+        if area == "Todas":
+            for a in areas:
+                carpeta = f"reservas/firmadas/{a}" if vista=="Firmados" else f"reservas/archivo/{a}"
+                if os.path.exists(carpeta):
+                    for f in os.listdir(carpeta):
+                        archivos.append((a, f))
+        else:
+            carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
+            os.makedirs(carpeta, exist_ok=True)
+            for f in os.listdir(carpeta):
+                archivos.append((area, f))
 
-        for f in archivos:
-            ruta = f"{carpeta}/{f}"
+        for a, f in archivos:
+            ruta = f"reservas/firmadas/{a}/{f}" if vista=="Firmados" else f"reservas/archivo/{a}/{f}"
+
             col1,col2,col3,col4 = st.columns([4,1,1,1])
-            col1.write(f)
+            col1.write(f"{f} ({a})")
 
             with open(ruta,"rb") as file:
                 col2.download_button("⬇️", file, file_name=f)
 
-            if col3.button("📁", key=f"a{f}"):
-                os.makedirs(f"reservas/archivo/{area}", exist_ok=True)
-                shutil.move(ruta, f"reservas/archivo/{area}/{f}")
-                st.rerun()
+            if vista == "Firmados":
+                if col3.button("📁", key=f"a{f}"):
+                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+                    shutil.move(ruta, f"reservas/archivo/{a}/{f}")
+                    st.rerun()
 
-            if col4.button("🗑️", key=f"del_f{f}"):
-                os.remove(ruta)
-                st.rerun()
+                if col4.button("🗑️", key=f"del_f{f}"):
+                    os.remove(ruta)
+                    st.rerun()
+            else:
+                if col3.button("🗑️", key=f"del_a{f}"):
+                    os.remove(ruta)
+                    st.rerun()
