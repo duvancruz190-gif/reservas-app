@@ -110,6 +110,7 @@ else:
     rol = st.session_state.rol
     st.title("📋 Gestión de Reservas")
 
+    # ================= USUARIO =================
     if rol == "usuario":
 
         if "pagina" not in st.session_state:
@@ -118,6 +119,7 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
+        # ===== ENVÍO =====
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
@@ -147,6 +149,102 @@ else:
                     st.success(f"{len(archivos)} archivos enviados")
                     st.session_state.upload_key += 1
                     st.rerun()
+
+        # ===== HISTORIAL =====
+        elif st.session_state.pagina == "historial":
+
+            st.header("📄 Historial")
+
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+
+            archivos_totales = []
+
+            if area_sel == "Todas":
+                for a in areas:
+                    ruta = f"reservas/enviados/{a}"
+                    if os.path.exists(ruta):
+                        for f in os.listdir(ruta):
+                            archivos_totales.append((a,f))
+            else:
+                ruta = f"reservas/enviados/{area_sel}"
+                if os.path.exists(ruta):
+                    for f in os.listdir(ruta):
+                        archivos_totales.append((area_sel,f))
+
+            if not archivos_totales:
+                st.info("No hay archivos")
+            else:
+
+                st.write(f"📄 Total: {len(archivos_totales)}")
+
+                if st.button("🧹 Borrar todo"):
+                    for a,f in archivos_totales:
+                        os.remove(f"reservas/enviados/{a}/{f}")
+                    st.rerun()
+
+                for a,f in archivos_totales:
+                    col1,col2 = st.columns([6,1])
+                    col1.write(f"{f} ({a})")
+
+                    if col2.button("🗑️", key=f"hist_{a}_{f}"):
+                        os.remove(f"reservas/enviados/{a}/{f}")
+                        st.rerun()
+
+        # ===== RECHAZADOS =====
+        elif st.session_state.pagina == "rechazados":
+
+            st.header("📛 Archivos Rechazados")
+
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+
+            rechazados = []
+
+            if area_sel == "Todas":
+                for a in areas:
+                    ruta = f"reservas/rechazados/{a}"
+                    if os.path.exists(ruta):
+                        for f in os.listdir(ruta):
+                            if f.endswith(".pdf"):
+                                rechazados.append((a,f))
+            else:
+                ruta = f"reservas/rechazados/{area_sel}"
+                if os.path.exists(ruta):
+                    for f in os.listdir(ruta):
+                        if f.endswith(".pdf"):
+                            rechazados.append((area_sel,f))
+
+            if not rechazados:
+                st.info("No hay rechazados")
+            else:
+
+                st.write(f"📄 Total: {len(rechazados)}")
+
+                if st.button("🧹 Borrar todos"):
+                    for a,f in rechazados:
+                        os.remove(f"reservas/rechazados/{a}/{f}")
+                        json_path = f"reservas/rechazados/{a}/{f}.json"
+                        if os.path.exists(json_path):
+                            os.remove(json_path)
+                    st.rerun()
+
+                for a,f in rechazados:
+
+                    motivo = "Sin motivo"
+                    ruta_json = f"reservas/rechazados/{a}/{f}.json"
+
+                    if os.path.exists(ruta_json):
+                        with open(ruta_json) as ff:
+                            motivo = json.load(ff)["motivo"]
+
+                    col1,col2 = st.columns([6,1])
+                    col1.warning(f"{f} ({a})")
+                    col1.write(f"Motivo: {motivo}")
+
+                    if col2.button("🗑️", key=f"rech_{a}_{f}"):
+                        os.remove(f"reservas/rechazados/{a}/{f}")
+                        if os.path.exists(ruta_json):
+                            os.remove(ruta_json)
+                        st.rerun()
 
     # ================= INGENIERO =================
     elif rol == "ingeniero":
@@ -209,7 +307,6 @@ else:
                                                         return True
                                         return False
 
-                                    # 🔼 ARRIBA
                                     y_base_arriba = ref.y0 - 10
 
                                     for i in range(8):
@@ -226,7 +323,6 @@ else:
 
                                         y_base_arriba -= 10
                                     else:
-                                        # 🔽 ABAJO
                                         y_base_abajo = ref.y1 + 15
 
                                         for i in range(12):
