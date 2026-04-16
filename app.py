@@ -390,53 +390,74 @@ else:
 
                         st.rerun()
 
-    # ================= ALMACÉN =================
-    elif rol == "almacen":
+# ================= ALMACÉN =================
+elif rol == "almacen":
 
-        st.header("📦 Gestión de Documentos")
+    st.header("📦 Gestión de Documentos")
 
-        col1, col2 = st.columns([5,1])
-        with col1:
-            area = st.selectbox("Área", ["Todas"] + areas)
-        with col2:
-            if st.button("🔄", key="refresh_almacen"):
-                st.rerun()
+    col1, col2 = st.columns([5,1])
+    with col1:
+        area = st.selectbox("Área", ["Todas"] + areas)
+    with col2:
+        if st.button("🔄", key="refresh_almacen"):
+            st.rerun()
 
-        vista = st.radio("Vista", ["Firmados","Archivados"])
+    vista = st.radio("Vista", ["Firmados","Archivados"])
 
-        archivos = []
+    archivos = []
 
-        if area == "Todas":
-            for a in areas:
-                carpeta = f"reservas/firmadas/{a}" if vista=="Firmados" else f"reservas/archivo/{a}"
-                if os.path.exists(carpeta):
-                    for f in os.listdir(carpeta):
-                        archivos.append((a, f))
-        else:
-            carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
-            os.makedirs(carpeta, exist_ok=True)
-            for f in os.listdir(carpeta):
-                archivos.append((area, f))
+    if area == "Todas":
+        for a in areas:
+            carpeta = f"reservas/firmadas/{a}" if vista=="Firmados" else f"reservas/archivo/{a}"
+            if os.path.exists(carpeta):
+                for f in os.listdir(carpeta):
+                    archivos.append((a, f))
+    else:
+        carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
+        os.makedirs(carpeta, exist_ok=True)
+        for f in os.listdir(carpeta):
+            archivos.append((area, f))
 
-        for a, f in archivos:
-            ruta = f"reservas/firmadas/{a}/{f}" if vista=="Firmados" else f"reservas/archivo/{a}/{f}"
+    # 🧹 BORRADO MASIVO EN ARCHIVADOS
+    if vista == "Archivados" and archivos:
+        if st.button("🧹 Borrar todos los archivados"):
+            for a, f in archivos:
+                ruta_del = f"reservas/archivo/{a}/{f}"
+                if os.path.exists(ruta_del):
+                    os.remove(ruta_del)
+            st.success("Archivados eliminados")
+            st.rerun()
 
-            col1,col2,col3,col4 = st.columns([4,1,1,1])
-            col1.write(f"{f} ({a})")
+    for a, f in archivos:
 
-            with open(ruta,"rb") as file:
-                col2.download_button("⬇️", file, file_name=f)
+        ruta = f"reservas/firmadas/{a}/{f}" if vista=="Firmados" else f"reservas/archivo/{a}/{f}"
 
-            if vista == "Firmados":
-                if col3.button("📁", key=f"a{f}"):
+        col1,col2,col3,col4 = st.columns([4,1,1,1])
+        col1.write(f"{f} ({a})")
+
+        # ⬇️ DESCARGAR Y MOVER AUTOMÁTICAMENTE A ARCHIVO
+        with open(ruta,"rb") as file:
+            if col2.download_button("⬇️", file, file_name=f, key=f"down_{a}_{f}"):
+
+                if vista == "Firmados":
                     os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
                     shutil.move(ruta, f"reservas/archivo/{a}/{f}")
+                    st.success(f"{f} movido a archivo")
                     st.rerun()
 
-                if col4.button("🗑️", key=f"del_f{f}"):
-                    os.remove(ruta)
-                    st.rerun()
-            else:
-                if col3.button("🗑️", key=f"del_a{f}"):
-                    os.remove(ruta)
-                    st.rerun()
+        if vista == "Firmados":
+
+            if col3.button("📁", key=f"a{f}"):
+                os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+                shutil.move(ruta, f"reservas/archivo/{a}/{f}")
+                st.rerun()
+
+            if col4.button("🗑️", key=f"del_f{f}"):
+                os.remove(ruta)
+                st.rerun()
+
+        else:
+
+            if col3.button("🗑️", key=f"del_a{f}"):
+                os.remove(ruta)
+                st.rerun()
