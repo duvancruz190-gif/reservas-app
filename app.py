@@ -393,7 +393,7 @@ else:
 # ================= ALMACÉN =================
     elif rol == "almacen":
 
-    st.header("📦 Gestión de Documentos")
+        st.header("📦 Gestión de Documentos")
 
     col1, col2 = st.columns([5,1])
     with col1:
