@@ -4,7 +4,6 @@ import fitz
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
-import time
 
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
@@ -32,21 +31,6 @@ for carpeta in [
 ]:
     os.makedirs(carpeta, exist_ok=True)
 
-# ================= VISTOS (PERSISTENTE) =================
-VISTOS_FILE = "reservas/vistos.json"
-
-if "vistos" not in st.session_state:
-    if os.path.exists(VISTOS_FILE):
-        with open(VISTOS_FILE, "r") as f:
-            st.session_state.vistos = set(json.load(f))
-    else:
-        st.session_state.vistos = set()
-
-def guardar_vistos():
-    with open(VISTOS_FILE, "w") as f:
-        json.dump(list(st.session_state.vistos), f)
-
-# ================= CONFIG =================
 areas = ["Producción","Calidad","Mantenimiento","Logística",
          "Recursos Humanos","Ambiental","Salud Ocupacional",
          "Marketing","Financiera","Almacén"]
@@ -138,7 +122,7 @@ else:
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
-            area = st.selectbox("Área", areas, key="area_usuario")
+            area = st.selectbox("Área", areas)
 
             archivos = st.file_uploader(
                 "Subir PDFs",
@@ -153,13 +137,12 @@ else:
                     os.makedirs(f"reservas/enviados/{area}", exist_ok=True)
 
                     for arch in archivos:
-                        nombre = f"{int(time.time())}_{arch.name}"
                         data = arch.getbuffer()
 
-                        with open(f"reservas/pendientes/{area}/{nombre}", "wb") as f:
+                        with open(f"reservas/pendientes/{area}/{arch.name}", "wb") as f:
                             f.write(data)
 
-                        with open(f"reservas/enviados/{area}/{nombre}", "wb") as f:
+                        with open(f"reservas/enviados/{area}/{arch.name}", "wb") as f:
                             f.write(data)
 
                     st.success(f"{len(archivos)} archivos enviados")
@@ -170,7 +153,7 @@ else:
 
             st.header("📄 Historial")
 
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas, key="hist_area")
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             archivos_totales = []
 
@@ -209,7 +192,7 @@ else:
 
             st.header("📛 Archivos Rechazados")
 
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas, key="rech_area")
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             rechazados = []
 
@@ -267,12 +250,10 @@ else:
 
         col1, col2 = st.columns([5,1])
         with col1:
-            area = st.selectbox("Área", ["Todas"] + areas, key="area_ing")
+            area = st.selectbox("Área", ["Todas"] + areas)
         with col2:
             if st.button("🔄"):
                 st.rerun()
-
-        filtro = st.selectbox("Filtrar", ["Todos", "Pendientes", "Abiertos"], key="filtro_ing")
 
         archivos = []
 
@@ -290,23 +271,7 @@ else:
 
         for a, arc in archivos:
 
-            clave = f"{a}_{arc}"
-            visto = clave in st.session_state.vistos
-
-            if filtro == "Pendientes" and visto:
-                continue
-            if filtro == "Abiertos" and not visto:
-                continue
-
-            col1,col2 = st.columns([10,1])
-            col1.write(f"{arc} ({a})")
-            col2.markdown("🟢" if visto else "🔴")
-
-            with st.expander(f"Abrir {arc}"):
-
-                if not visto:
-                    st.session_state.vistos.add(clave)
-                    guardar_vistos()
+            with st.expander(f"{arc} ({a})"):
 
                 ruta = f"reservas/pendientes/{a}/{arc}"
                 pdf_viewer(ruta)
@@ -324,24 +289,91 @@ else:
                         if os.path.exists(ruta_firma):
 
                             doc = fitz.open(ruta)
-                            pagina_objetivo = doc[-1]
+                            rect_firma = None
+                            pagina_objetivo = None
 
-                            pagina_objetivo.insert_image(
-                                fitz.Rect(300,500,450,600),
-                                filename=ruta_firma
-                            )
+                            for page in doc:
+                                coincidencias = page.search_for("FIRMA 1")
+
+                                if coincidencias:
+                                    ref = coincidencias[0]
+                                    pagina_objetivo = page
+
+                                    ancho_firma = 120
+                                    alto_firma = 50
+                                    x_centro = (ref.x0 + ref.x1) / 2
+
+                                    def hay_contenido(page, rect):
+                                        texto = page.get_text("text", clip=rect)
+                                        if texto.strip():
+                                            return True
+                                        for d in page.get_drawings():
+                                            for item in d["items"]:
+                                                if item[0] == "l":
+                                                    p1, p2 = item[1], item[2]
+                                                    if rect.intersects(fitz.Rect(p1, p2)):
+                                                        return True
+                                        return False
+
+                                    y_base_arriba = ref.y0 - 10
+
+                                    for i in range(8):
+                                        rect_intento = fitz.Rect(
+                                            x_centro - ancho_firma/2,
+                                            y_base_arriba - alto_firma,
+                                            x_centro + ancho_firma/2,
+                                            y_base_arriba
+                                        )
+
+                                        if not hay_contenido(page, rect_intento):
+                                            rect_firma = rect_intento
+                                            break
+
+                                        y_base_arriba -= 10
+                                    else:
+                                        y_base_abajo = ref.y1 + 15
+
+                                        for i in range(12):
+                                            rect_intento = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                y_base_abajo,
+                                                x_centro + ancho_firma/2,
+                                                y_base_abajo + alto_firma
+                                            )
+
+                                            if not hay_contenido(page, rect_intento):
+                                                rect_firma = rect_intento
+                                                break
+
+                                            y_base_abajo += 12
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                ref.y1 + 40,
+                                                x_centro + ancho_firma/2,
+                                                ref.y1 + 40 + alto_firma
+                                            )
+
+                                    break
+
+                            if not pagina_objetivo:
+                                pagina_objetivo = doc[-1]
+                                ancho = pagina_objetivo.rect.width
+                                alto = pagina_objetivo.rect.height
+                                rect_firma = fitz.Rect(
+                                    ancho * 0.55,
+                                    alto * 0.65,
+                                    ancho * 0.85,
+                                    alto * 0.85
+                                )
+
+                            pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
                             os.makedirs(f"reservas/firmadas/{a}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{a}/{arc}")
                             doc.close()
 
                             os.remove(ruta)
-
-                            # quitar de vistos
-                            if clave in st.session_state.vistos:
-                                st.session_state.vistos.remove(clave)
-                                guardar_vistos()
-
                             st.success("✅ Documento firmado correctamente")
                             st.rerun()
 
@@ -356,10 +388,6 @@ else:
                         with open(f"reservas/rechazados/{a}/{arc}.json","w") as f:
                             json.dump({"motivo":motivo},f)
 
-                        if clave in st.session_state.vistos:
-                            st.session_state.vistos.remove(clave)
-                            guardar_vistos()
-
                         st.rerun()
 
     # ================= ALMACÉN =================
@@ -369,7 +397,7 @@ else:
 
         col1, col2 = st.columns([5,1])
         with col1:
-            area = st.selectbox("Área", ["Todas"] + areas, key="area_alm")
+            area = st.selectbox("Área", ["Todas"] + areas)
         with col2:
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
