@@ -183,13 +183,16 @@ else:
                 for a,f in archivos_totales:
                     col1,col2 = st.columns([6,1])
 
-                    # ===== ESTADO (AQUÍ ESTÁ LA MEJORA) =====
+                    # ===== ESTADO AGREGADO =====
                     ruta_firmado = f"reservas/firmadas/{a}/{f}"
+                    ruta_rechazado = f"reservas/rechazados/{a}/{f}"
 
                     if os.path.exists(ruta_firmado):
-                        col1.success(f"{f} ({a}) - ✅ Firmado")
+                        col1.success(f"{f} ({a}) - 🟢 Firmado")
+                    elif os.path.exists(ruta_rechazado):
+                        col1.error(f"{f} ({a}) - 🚫 Rechazado")
                     else:
-                        col1.error(f"{f} ({a}) - ⏳ Pendiente")
+                        col1.warning(f"{f} ({a}) - 🔴 Pendiente")
 
                     if col2.button("🗑️", key=f"hist_{a}_{f}"):
                         os.remove(f"reservas/enviados/{a}/{f}")
