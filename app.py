@@ -182,7 +182,14 @@ else:
 
                 for a,f in archivos_totales:
                     col1,col2 = st.columns([6,1])
-                    col1.write(f"{f} ({a})")
+
+                    # ===== ESTADO (AQUÍ ESTÁ LA MEJORA) =====
+                    ruta_firmado = f"reservas/firmadas/{a}/{f}"
+
+                    if os.path.exists(ruta_firmado):
+                        col1.success(f"{f} ({a}) - ✅ Firmado")
+                    else:
+                        col1.error(f"{f} ({a}) - ⏳ Pendiente")
 
                     if col2.button("🗑️", key=f"hist_{a}_{f}"):
                         os.remove(f"reservas/enviados/{a}/{f}")
