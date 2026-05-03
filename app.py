@@ -160,7 +160,7 @@ else:
                         with open(f"reservas/enviados/{area}/{nombre_unico}", "wb") as f:
                             f.write(data)
 
-                        # GUARDAR EN DB
+                        # DB
                         cursor.execute("""
                         INSERT INTO reservas (archivo, area, estado, fecha, usuario)
                         VALUES (?, ?, ?, ?, ?)
@@ -186,6 +186,7 @@ else:
 
             for i,(archivo,a,estado) in enumerate(datos):
                 nombre = mostrar_nombre(archivo)
+
                 col1,col2 = st.columns([6,1])
 
                 if estado == "firmado":
@@ -202,20 +203,31 @@ else:
                     conn.commit()
                     st.rerun()
 
+# ================= RECHAZADOS =================
+        elif st.session_state.pagina == "rechazados":
+            st.header("📛 Archivos Rechazados")
+
+            for a in areas:
+                ruta = f"reservas/rechazados/{a}"
+                if os.path.exists(ruta):
+                    for f in os.listdir(ruta):
+                        nombre = mostrar_nombre(f)
+                        st.warning(f"{nombre} ({a})")
+
 # ================= INGENIERO =================
     elif rol == "ingeniero":
         st.header("✍️ Revisión y Firma")
 
         area = st.selectbox("Área", ["Todas"] + areas)
-
         archivos = []
+
         for a in areas if area=="Todas" else [area]:
             carpeta = f"reservas/pendientes/{a}"
             if os.path.exists(carpeta):
                 for f in os.listdir(carpeta):
-                    archivos.append((a,f))
+                    archivos.append((a, f))
 
-        for i,(a,arc) in enumerate(archivos):
+        for i,(a, arc) in enumerate(archivos):
             nombre = mostrar_nombre(arc)
 
             with st.expander(f"{nombre} ({a})"):
@@ -227,7 +239,7 @@ else:
                 if st.button("Firmar", key=f"f_{arc}_{i}"):
                     datos_firma = firmas_contrasena.get(a)
 
-                    if datos_firma and pw == datos_firma["password"]:
+                    if datos_firma and pw == datos_firma.get("password"):
                         ruta_firma = datos_firma["archivo"]
 
                         if os.path.exists(ruta_firma):
@@ -248,17 +260,64 @@ else:
                                     alto_firma = 50
                                     x_centro = (ref.x0 + ref.x1) / 2
 
-                                    rect_firma = fitz.Rect(
-                                        x_centro - ancho_firma/2,
-                                        ref.y1 + 40,
-                                        x_centro + ancho_firma/2,
-                                        ref.y1 + 40 + alto_firma
-                                    )
+                                    def hay_contenido(page, rect):
+                                        texto = page.get_text("text", clip=rect)
+                                        if texto.strip():
+                                            return True
+                                        for d in page.get_drawings():
+                                            for item in d["items"]:
+                                                if item[0] == "l":
+                                                    p1, p2 = item[1], item[2]
+                                                    if rect.intersects(fitz.Rect(p1, p2)):
+                                                        return True
+                                        return False
+
+                                    y_base_arriba = ref.y0 - 10
+
+                                    for _ in range(8):
+                                        rect_intento = fitz.Rect(
+                                            x_centro - ancho_firma/2,
+                                            y_base_arriba - alto_firma,
+                                            x_centro + ancho_firma/2,
+                                            y_base_arriba
+                                        )
+                                        if not hay_contenido(page, rect_intento):
+                                            rect_firma = rect_intento
+                                            break
+                                        y_base_arriba -= 10
+                                    else:
+                                        y_base_abajo = ref.y1 + 15
+                                        for _ in range(12):
+                                            rect_intento = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                y_base_abajo,
+                                                x_centro + ancho_firma/2,
+                                                y_base_abajo + alto_firma
+                                            )
+                                            if not hay_contenido(page, rect_intento):
+                                                rect_firma = rect_intento
+                                                break
+                                            y_base_abajo += 12
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                ref.y1 + 40,
+                                                x_centro + ancho_firma/2,
+                                                ref.y1 + 40 + alto_firma
+                                            )
                                     break
 
                             if not pagina_objetivo:
                                 pagina_objetivo = doc[-1]
-                                rect_firma = pagina_objetivo.rect
+                                ancho = pagina_objetivo.rect.width
+                                alto = pagina_objetivo.rect.height
+
+                                rect_firma = fitz.Rect(
+                                    ancho * 0.55,
+                                    alto * 0.65,
+                                    ancho * 0.85,
+                                    alto * 0.85
+                                )
 
                             pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
                             # === FIN ===
@@ -273,16 +332,47 @@ else:
                                            (st.session_state.user_name, arc))
                             conn.commit()
 
-                            st.success("✅ Documento firmado")
+                            st.success("✅ Documento firmado correctamente")
                             st.rerun()
 
                 motivo = st.text_input("Motivo", key=f"m_{arc}_{i}")
 
                 if st.button("Rechazar", key=f"r_{arc}_{i}"):
                     if motivo:
+                        os.makedirs(f"reservas/rechazados/{a}", exist_ok=True)
                         shutil.move(ruta, f"reservas/rechazados/{a}/{arc}")
 
                         cursor.execute("UPDATE reservas SET estado='rechazado' WHERE archivo=?", (arc,))
                         conn.commit()
 
                         st.rerun()
+
+# ================= ALMACÉN =================
+    elif rol == "almacen":
+        st.header("📦 Gestión de Documentos")
+
+        vista = st.radio("Vista", ["Firmados","Archivados"])
+        archivos = []
+
+        for a in areas:
+            carpeta = f"reservas/firmadas/{a}" if vista=="Firmados" else f"reservas/archivo/{a}"
+            if os.path.exists(carpeta):
+                for f in os.listdir(carpeta):
+                    archivos.append((a, f))
+
+        for i,(a,f) in enumerate(archivos):
+            nombre = mostrar_nombre(f)
+            ruta = f"reservas/firmadas/{a}/{f}" if vista=="Firmados" else f"reservas/archivo/{a}/{f}"
+
+            col1,col2,col3 = st.columns([4,1,1])
+            col1.write(f"{nombre} ({a})")
+
+            with open(ruta,"rb") as file:
+                col2.download_button("⬇️", file, file_name=nombre, key=f"down_{i}")
+
+            if vista=="Firmados":
+                if col3.button("📁", key=f"a_{i}"):
+                    shutil.move(ruta, f"reservas/archivo/{a}/{f}")
+                    cursor.execute("UPDATE reservas SET estado='archivado' WHERE archivo=?", (f,))
+                    conn.commit()
+                    st.rerun()
