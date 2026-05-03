@@ -132,7 +132,7 @@ else:
 
                     for arch in archivos:
                         data = arch.getbuffer()
-                        timestamp = str(int(time.time())
+                        timestamp = int(time.time())
                         nombre_unico = f"{timestamp}__{arch.name}"
 
                         with open(f"reservas/pendientes/{area}/{nombre_unico}", "wb") as f:
