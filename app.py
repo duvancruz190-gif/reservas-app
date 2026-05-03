@@ -257,7 +257,7 @@ else:
 
             with st.expander(f"{nombre} ({a})"):
                 ruta = f"reservas/pendientes/{a}/{arc}"
-                pdf_viewer(ruta)
+                pdf_viewer(ruta, key=f"pdf_{a}_{arc}")
 
                 pw = st.text_input("Contraseña", type="password", key=arc)
 
