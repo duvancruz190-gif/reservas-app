@@ -268,10 +268,83 @@ else:
 
                         if os.path.exists(ruta_firma):
                             doc = fitz.open(ruta)
-                            pagina_objetivo = doc[-1]
-                            rect_firma = pagina_objetivo.rect
+
+                            # ===== TU LÓGICA ORIGINAL =====
+                            rect_firma = None
+                            pagina_objetivo = None
+
+                            for page in doc:
+                                coincidencias = page.search_for("FIRMA 1")
+
+                                if coincidencias:
+                                    ref = coincidencias[0]
+                                    pagina_objetivo = page
+
+                                    ancho_firma = 120
+                                    alto_firma = 50
+                                    x_centro = (ref.x0 + ref.x1) / 2
+
+                                    def hay_contenido(page, rect):
+                                        texto = page.get_text("text", clip=rect)
+                                        if texto.strip():
+                                            return True
+                                        for d in page.get_drawings():
+                                            for item in d["items"]:
+                                                if item[0] == "l":
+                                                    p1, p2 = item[1], item[2]
+                                                    if rect.intersects(fitz.Rect(p1, p2)):
+                                                        return True
+                                        return False
+
+                                    y_base_arriba = ref.y0 - 10
+
+                                    for _ in range(8):
+                                        rect_intento = fitz.Rect(
+                                            x_centro - ancho_firma/2,
+                                            y_base_arriba - alto_firma,
+                                            x_centro + ancho_firma/2,
+                                            y_base_arriba
+                                        )
+                                        if not hay_contenido(page, rect_intento):
+                                            rect_firma = rect_intento
+                                            break
+                                        y_base_arriba -= 10
+                                    else:
+                                        y_base_abajo = ref.y1 + 15
+                                        for _ in range(12):
+                                            rect_intento = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                y_base_abajo,
+                                                x_centro + ancho_firma/2,
+                                                y_base_abajo + alto_firma
+                                            )
+                                            if not hay_contenido(page, rect_intento):
+                                                rect_firma = rect_intento
+                                                break
+                                            y_base_abajo += 12
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                ref.y1 + 40,
+                                                x_centro + ancho_firma/2,
+                                                ref.y1 + 40 + alto_firma
+                                            )
+                                    break
+
+                            if not pagina_objetivo:
+                                pagina_objetivo = doc[-1]
+                                ancho = pagina_objetivo.rect.width
+                                alto = pagina_objetivo.rect.height
+
+                                rect_firma = fitz.Rect(
+                                    ancho * 0.55,
+                                    alto * 0.65,
+                                    ancho * 0.85,
+                                    alto * 0.85
+                                )
 
                             pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
+                            # ===== FIN LÓGICA ORIGINAL =====
 
                             os.makedirs(f"reservas/firmadas/{a}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{a}/{arc}")
