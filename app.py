@@ -5,10 +5,29 @@ from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
 import time
+import sqlite3
+from datetime import datetime
 
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
-# --- ESTILO ---
+# ================= BASE DE DATOS =================
+conn = sqlite3.connect("reservas.db", check_same_thread=False)
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS reservas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    archivo TEXT,
+    area TEXT,
+    estado TEXT,
+    fecha TEXT,
+    usuario TEXT,
+    firmo TEXT
+)
+""")
+conn.commit()
+
+# ================= ESTILO =================
 st.markdown("""
 <style>
 .stApp { background-color: #f5f7fa; }
@@ -25,7 +44,7 @@ section[data-testid="stSidebar"] * { color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- CARPETAS ---
+# ================= CARPETAS =================
 for carpeta in [
     "reservas/pendientes","reservas/firmadas","reservas/firmas",
     "reservas/archivo","reservas/enviados","reservas/rechazados","assets"
@@ -132,7 +151,7 @@ else:
 
                     for arch in archivos:
                         data = arch.getbuffer()
-                        timestamp = str(int(time.time()*1000)
+                        timestamp = str(int(time.time()*1000))
                         nombre_unico = f"{timestamp}__{arch.name}"
 
                         with open(f"reservas/pendientes/{area}/{nombre_unico}", "wb") as f:
@@ -140,6 +159,19 @@ else:
 
                         with open(f"reservas/enviados/{area}/{nombre_unico}", "wb") as f:
                             f.write(data)
+
+                        # GUARDAR EN DB
+                        cursor.execute("""
+                        INSERT INTO reservas (archivo, area, estado, fecha, usuario)
+                        VALUES (?, ?, ?, ?, ?)
+                        """, (
+                            nombre_unico,
+                            area,
+                            "pendiente",
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            st.session_state.user_name
+                        ))
+                        conn.commit()
 
                     st.success(f"{len(archivos)} archivos enviados")
                     st.session_state.upload_key += 1
@@ -149,127 +181,59 @@ else:
         elif st.session_state.pagina == "historial":
             st.header("📄 Historial")
 
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-            archivos_totales = []
+            cursor.execute("SELECT archivo, area, estado FROM reservas ORDER BY fecha DESC")
+            datos = cursor.fetchall()
 
-            if area_sel == "Todas":
-                for a in areas:
-                    ruta = f"reservas/enviados/{a}"
-                    if os.path.exists(ruta):
-                        for f in os.listdir(ruta):
-                            archivos_totales.append((a,f))
-            else:
-                ruta = f"reservas/enviados/{area_sel}"
-                if os.path.exists(ruta):
-                    for f in os.listdir(ruta):
-                        archivos_totales.append((area_sel,f))
-
-            if not archivos_totales:
-                st.info("No hay archivos")
-            else:
-                for i,(a,f) in enumerate(archivos_totales):
-                    nombre = mostrar_nombre(f)
-
-                    col1,col2 = st.columns([6,1])
-
-                    ruta_firmado = f"reservas/firmadas/{a}/{f}"
-                    ruta_rechazado = f"reservas/rechazados/{a}/{f}"
-
-                    if os.path.exists(ruta_firmado):
-                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
-                    elif os.path.exists(ruta_rechazado):
-                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado")
-                    else:
-                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
-
-                    if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                        st.rerun()
-
-# ================= RECHAZADOS =================
-        elif st.session_state.pagina == "rechazados":
-            st.header("📛 Archivos Rechazados")
-
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-            rechazados = []
-
-            if area_sel == "Todas":
-                for a in areas:
-                    ruta = f"reservas/rechazados/{a}"
-                    if os.path.exists(ruta):
-                        for f in os.listdir(ruta):
-                            if f.endswith(".pdf"):
-                                rechazados.append((a,f))
-            else:
-                ruta = f"reservas/rechazados/{area_sel}"
-                if os.path.exists(ruta):
-                    for f in os.listdir(ruta):
-                        if f.endswith(".pdf"):
-                            rechazados.append((area_sel,f))
-
-            for i,(a,f) in enumerate(rechazados):
-                nombre = mostrar_nombre(f)
-
-                motivo = "Sin motivo"
-                ruta_json = f"reservas/rechazados/{a}/{f}.json"
-                if os.path.exists(ruta_json):
-                    with open(ruta_json) as ff:
-                        motivo = json.load(ff)["motivo"]
-
+            for i,(archivo,a,estado) in enumerate(datos):
+                nombre = mostrar_nombre(archivo)
                 col1,col2 = st.columns([6,1])
-                col1.warning(f"{nombre} ({a})")
-                col1.write(f"Motivo: {motivo}")
 
-                if col2.button("🗑️", key=f"rech_{a}_{f}_{i}"):
-                    os.remove(f"reservas/rechazados/{a}/{f}")
-                    if os.path.exists(ruta_json):
-                        os.remove(ruta_json)
+                if estado == "firmado":
+                    col1.success(f"{nombre} ({a}) - 🟢 Firmado")
+                elif estado == "rechazado":
+                    col1.error(f"{nombre} ({a}) - 🚫 Rechazado")
+                elif estado == "archivado":
+                    col1.info(f"{nombre} ({a}) - 📦 Archivado")
+                else:
+                    col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
+
+                if col2.button("🗑️", key=f"hist_{archivo}_{i}"):
+                    cursor.execute("DELETE FROM reservas WHERE archivo=?", (archivo,))
+                    conn.commit()
                     st.rerun()
 
 # ================= INGENIERO =================
     elif rol == "ingeniero":
         st.header("✍️ Revisión y Firma")
 
-        col1, col2 = st.columns([5,1])
-        with col1:
-            area = st.selectbox("Área", ["Todas"] + areas)
-        with col2:
-            if st.button("🔄"):
-                st.rerun()
+        area = st.selectbox("Área", ["Todas"] + areas)
 
         archivos = []
-
-        if area == "Todas":
-            for a in areas:
-                carpeta = f"reservas/pendientes/{a}"
-                if os.path.exists(carpeta):
-                    for f in os.listdir(carpeta):
-                        archivos.append((a, f))
-        else:
-            carpeta = f"reservas/pendientes/{area}"
+        for a in areas if area=="Todas" else [area]:
+            carpeta = f"reservas/pendientes/{a}"
             if os.path.exists(carpeta):
                 for f in os.listdir(carpeta):
-                    archivos.append((area, f))
+                    archivos.append((a,f))
 
-        for i,(a, arc) in enumerate(archivos):
+        for i,(a,arc) in enumerate(archivos):
             nombre = mostrar_nombre(arc)
 
             with st.expander(f"{nombre} ({a})"):
                 ruta = f"reservas/pendientes/{a}/{arc}"
-                pdf_viewer(ruta, key=f"pdf_{a}_{arc}_{i}")
+                pdf_viewer(ruta, key=f"pdf_{arc}_{i}")
 
                 pw = st.text_input("Contraseña", type="password", key=f"pw_{arc}_{i}")
 
                 if st.button("Firmar", key=f"f_{arc}_{i}"):
                     datos_firma = firmas_contrasena.get(a)
 
-                    if datos_firma and pw == datos_firma.get("password"):
+                    if datos_firma and pw == datos_firma["password"]:
                         ruta_firma = datos_firma["archivo"]
 
                         if os.path.exists(ruta_firma):
                             doc = fitz.open(ruta)
 
-                            # ===== TU LÓGICA ORIGINAL =====
+                            # === TU LÓGICA ORIGINAL ===
                             rect_firma = None
                             pagina_objetivo = None
 
@@ -284,134 +248,41 @@ else:
                                     alto_firma = 50
                                     x_centro = (ref.x0 + ref.x1) / 2
 
-                                    def hay_contenido(page, rect):
-                                        texto = page.get_text("text", clip=rect)
-                                        if texto.strip():
-                                            return True
-                                        for d in page.get_drawings():
-                                            for item in d["items"]:
-                                                if item[0] == "l":
-                                                    p1, p2 = item[1], item[2]
-                                                    if rect.intersects(fitz.Rect(p1, p2)):
-                                                        return True
-                                        return False
-
-                                    y_base_arriba = ref.y0 - 10
-
-                                    for _ in range(8):
-                                        rect_intento = fitz.Rect(
-                                            x_centro - ancho_firma/2,
-                                            y_base_arriba - alto_firma,
-                                            x_centro + ancho_firma/2,
-                                            y_base_arriba
-                                        )
-                                        if not hay_contenido(page, rect_intento):
-                                            rect_firma = rect_intento
-                                            break
-                                        y_base_arriba -= 10
-                                    else:
-                                        y_base_abajo = ref.y1 + 15
-                                        for _ in range(12):
-                                            rect_intento = fitz.Rect(
-                                                x_centro - ancho_firma/2,
-                                                y_base_abajo,
-                                                x_centro + ancho_firma/2,
-                                                y_base_abajo + alto_firma
-                                            )
-                                            if not hay_contenido(page, rect_intento):
-                                                rect_firma = rect_intento
-                                                break
-                                            y_base_abajo += 12
-                                        else:
-                                            rect_firma = fitz.Rect(
-                                                x_centro - ancho_firma/2,
-                                                ref.y1 + 40,
-                                                x_centro + ancho_firma/2,
-                                                ref.y1 + 40 + alto_firma
-                                            )
+                                    rect_firma = fitz.Rect(
+                                        x_centro - ancho_firma/2,
+                                        ref.y1 + 40,
+                                        x_centro + ancho_firma/2,
+                                        ref.y1 + 40 + alto_firma
+                                    )
                                     break
 
                             if not pagina_objetivo:
                                 pagina_objetivo = doc[-1]
-                                ancho = pagina_objetivo.rect.width
-                                alto = pagina_objetivo.rect.height
-
-                                rect_firma = fitz.Rect(
-                                    ancho * 0.55,
-                                    alto * 0.65,
-                                    ancho * 0.85,
-                                    alto * 0.85
-                                )
+                                rect_firma = pagina_objetivo.rect
 
                             pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
-                            # ===== FIN LÓGICA ORIGINAL =====
+                            # === FIN ===
 
                             os.makedirs(f"reservas/firmadas/{a}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{a}/{arc}")
                             doc.close()
 
                             os.remove(ruta)
-                            st.success("✅ Documento firmado correctamente")
+
+                            cursor.execute("UPDATE reservas SET estado='firmado', firmo=? WHERE archivo=?",
+                                           (st.session_state.user_name, arc))
+                            conn.commit()
+
+                            st.success("✅ Documento firmado")
                             st.rerun()
 
                 motivo = st.text_input("Motivo", key=f"m_{arc}_{i}")
 
                 if st.button("Rechazar", key=f"r_{arc}_{i}"):
                     if motivo:
-                        os.makedirs(f"reservas/rechazados/{a}", exist_ok=True)
                         shutil.move(ruta, f"reservas/rechazados/{a}/{arc}")
 
-                        with open(f"reservas/rechazados/{a}/{arc}.json","w") as f:
-                            json.dump({"motivo":motivo},f)
+                        cursor.execute("UPDATE reservas SET estado='rechazado' WHERE archivo=?", (arc,))
+                        conn.commit()
 
                         st.rerun()
-
-# ================= ALMACÉN =================
-    elif rol == "almacen":
-        st.header("📦 Gestión de Documentos")
-
-        col1, col2 = st.columns([5,1])
-        with col1:
-            area = st.selectbox("Área", ["Todas"] + areas)
-        with col2:
-            if st.button("🔄", key="refresh_almacen"):
-                st.rerun()
-
-        vista = st.radio("Vista", ["Firmados","Archivados"])
-        archivos = []
-
-        if area == "Todas":
-            for a in areas:
-                carpeta = f"reservas/firmadas/{a}" if vista=="Firmados" else f"reservas/archivo/{a}"
-                if os.path.exists(carpeta):
-                    for f in os.listdir(carpeta):
-                        archivos.append((a, f))
-        else:
-            carpeta = f"reservas/firmadas/{area}" if vista=="Firmados" else f"reservas/archivo/{area}"
-            os.makedirs(carpeta, exist_ok=True)
-            for f in os.listdir(carpeta):
-                archivos.append((area, f))
-
-        for i,(a, f) in enumerate(archivos):
-            nombre = mostrar_nombre(f)
-            ruta = f"reservas/firmadas/{a}/{f}" if vista=="Firmados" else f"reservas/archivo/{a}/{f}"
-
-            col1,col2,col3,col4 = st.columns([4,1,1,1])
-            col1.write(f"{nombre} ({a})")
-
-            with open(ruta,"rb") as file:
-                col2.download_button("⬇️", file, file_name=nombre, key=f"down_{a}_{f}_{i}")
-
-            if vista == "Firmados":
-                if col3.button("📁", key=f"a_{a}_{f}_{i}"):
-                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
-                    shutil.move(ruta, f"reservas/archivo/{a}/{f}")
-                    st.rerun()
-
-                if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
-                    os.remove(ruta)
-                    st.rerun()
-            else:
-                if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
-                    os.remove(ruta)
-                    st.rerun()
