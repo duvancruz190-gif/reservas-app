@@ -4,6 +4,7 @@ import fitz
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
+import time  # 👈 agregado
 
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
 
@@ -139,10 +140,15 @@ else:
                     for arch in archivos:
                         data = arch.getbuffer()
 
-                        with open(f"reservas/pendientes/{area}/{arch.name}", "wb") as f:
+                        # 👇 AQUÍ EL ÚNICO CAMBIO
+                        nombre_base = arch.name.replace(".pdf", "")
+                        timestamp = int(time.time())
+                        nombre_unico = f"{nombre_base}_{timestamp}.pdf"
+
+                        with open(f"reservas/pendientes/{area}/{nombre_unico}", "wb") as f:
                             f.write(data)
 
-                        with open(f"reservas/enviados/{area}/{arch.name}", "wb") as f:
+                        with open(f"reservas/enviados/{area}/{nombre_unico}", "wb") as f:
                             f.write(data)
 
                     st.success(f"{len(archivos)} archivos enviados")
@@ -183,7 +189,6 @@ else:
                 for a,f in archivos_totales:
                     col1,col2 = st.columns([6,1])
 
-                    # ===== ESTADO AGREGADO =====
                     ruta_firmado = f"reservas/firmadas/{a}/{f}"
                     ruta_rechazado = f"reservas/rechazados/{a}/{f}"
 
