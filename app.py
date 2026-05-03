@@ -47,6 +47,9 @@ firmas_contrasena = {
     "Logística":{"archivo":"reservas/firmas/LogisticaRojas.png","password":"5678"},
 }
 
+def mostrar_nombre(f):
+    return f.split("__",1)[-1]
+
 if "login" not in st.session_state:
     st.session_state.login = False
 
@@ -74,9 +77,6 @@ if not st.session_state.login:
 
 # ================= SISTEMA =================
 else:
-
-    def mostrar_nombre(f):
-        return f.split("__",1)[-1]
 
     with st.sidebar:
         if os.path.exists("assets/ETERNITTTTT.png"):
@@ -168,13 +168,6 @@ else:
             if not archivos_totales:
                 st.info("No hay archivos")
             else:
-                st.write(f"📄 Total: {len(archivos_totales)}")
-
-                if st.button("🧹 Borrar todo"):
-                    for a,f in archivos_totales:
-                        os.remove(f"reservas/enviados/{a}/{f}")
-                    st.rerun()
-
                 for a,f in archivos_totales:
                     nombre = mostrar_nombre(f)
 
@@ -215,27 +208,24 @@ else:
                         if f.endswith(".pdf"):
                             rechazados.append((area_sel,f))
 
-            if not rechazados:
-                st.info("No hay rechazados")
-            else:
-                for a,f in rechazados:
-                    nombre = mostrar_nombre(f)
+            for a,f in rechazados:
+                nombre = mostrar_nombre(f)
 
-                    motivo = "Sin motivo"
-                    ruta_json = f"reservas/rechazados/{a}/{f}.json"
+                motivo = "Sin motivo"
+                ruta_json = f"reservas/rechazados/{a}/{f}.json"
+                if os.path.exists(ruta_json):
+                    with open(ruta_json) as ff:
+                        motivo = json.load(ff)["motivo"]
+
+                col1,col2 = st.columns([6,1])
+                col1.warning(f"{nombre} ({a})")
+                col1.write(f"Motivo: {motivo}")
+
+                if col2.button("🗑️", key=f"rech_{a}_{f}"):
+                    os.remove(f"reservas/rechazados/{a}/{f}")
                     if os.path.exists(ruta_json):
-                        with open(ruta_json) as ff:
-                            motivo = json.load(ff)["motivo"]
-
-                    col1,col2 = st.columns([6,1])
-                    col1.warning(f"{nombre} ({a})")
-                    col1.write(f"Motivo: {motivo}")
-
-                    if col2.button("🗑️", key=f"rech_{a}_{f}"):
-                        os.remove(f"reservas/rechazados/{a}/{f}")
-                        if os.path.exists(ruta_json):
-                            os.remove(ruta_json)
-                        st.rerun()
+                        os.remove(ruta_json)
+                    st.rerun()
 
 # ================= INGENIERO =================
     elif rol == "ingeniero":
@@ -280,9 +270,81 @@ else:
                         if os.path.exists(ruta_firma):
                             doc = fitz.open(ruta)
 
-                            page = doc[-1]
-                            rect = fitz.Rect(300, 500, 500, 650)
-                            page.insert_image(rect, filename=ruta_firma)
+                            # === TU LÓGICA ORIGINAL DE FIRMA ===
+                            rect_firma = None
+                            pagina_objetivo = None
+
+                            for page in doc:
+                                coincidencias = page.search_for("FIRMA 1")
+
+                                if coincidencias:
+                                    ref = coincidencias[0]
+                                    pagina_objetivo = page
+
+                                    ancho_firma = 120
+                                    alto_firma = 50
+                                    x_centro = (ref.x0 + ref.x1) / 2
+
+                                    def hay_contenido(page, rect):
+                                        texto = page.get_text("text", clip=rect)
+                                        if texto.strip():
+                                            return True
+                                        for d in page.get_drawings():
+                                            for item in d["items"]:
+                                                if item[0] == "l":
+                                                    p1, p2 = item[1], item[2]
+                                                    if rect.intersects(fitz.Rect(p1, p2)):
+                                                        return True
+                                        return False
+
+                                    y_base_arriba = ref.y0 - 10
+
+                                    for i in range(8):
+                                        rect_intento = fitz.Rect(
+                                            x_centro - ancho_firma/2,
+                                            y_base_arriba - alto_firma,
+                                            x_centro + ancho_firma/2,
+                                            y_base_arriba
+                                        )
+                                        if not hay_contenido(page, rect_intento):
+                                            rect_firma = rect_intento
+                                            break
+                                        y_base_arriba -= 10
+                                    else:
+                                        y_base_abajo = ref.y1 + 15
+                                        for i in range(12):
+                                            rect_intento = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                y_base_abajo,
+                                                x_centro + ancho_firma/2,
+                                                y_base_abajo + alto_firma
+                                            )
+                                            if not hay_contenido(page, rect_intento):
+                                                rect_firma = rect_intento
+                                                break
+                                            y_base_abajo += 12
+                                        else:
+                                            rect_firma = fitz.Rect(
+                                                x_centro - ancho_firma/2,
+                                                ref.y1 + 40,
+                                                x_centro + ancho_firma/2,
+                                                ref.y1 + 40 + alto_firma
+                                            )
+                                    break
+
+                            if not pagina_objetivo:
+                                pagina_objetivo = doc[-1]
+                                ancho = pagina_objetivo.rect.width
+                                alto = pagina_objetivo.rect.height
+
+                                rect_firma = fitz.Rect(
+                                    ancho * 0.55,
+                                    alto * 0.65,
+                                    ancho * 0.85,
+                                    alto * 0.85
+                                )
+
+                            pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
                             os.makedirs(f"reservas/firmadas/{a}", exist_ok=True)
                             doc.save(f"reservas/firmadas/{a}/{arc}")
