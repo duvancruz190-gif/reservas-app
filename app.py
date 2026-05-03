@@ -404,15 +404,15 @@ else:
                 col2.download_button("⬇️", file, file_name=nombre, key=f"down_{a}_{f}")
 
             if vista == "Firmados":
-                if col3.button("📁", key=f"a{f}"):
+                if col3.button("📁", key=f"a_{a}_{f}"):
                     os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
                     shutil.move(ruta, f"reservas/archivo/{a}/{f}")
                     st.rerun()
 
-                if col4.button("🗑️", key=f"del_f{f}"):
+                if col4.button("🗑️", key=f"del_f_{a}_{f}"):
                     os.remove(ruta)
                     st.rerun()
             else:
-                if col3.button("🗑️", key=f"del_a{f}"):
+                if col3.button("🗑️", key=f"del_a_{a}_{f}"):
                     os.remove(ruta)
                     st.rerun()
