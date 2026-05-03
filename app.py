@@ -132,7 +132,6 @@ else:
 
                     for arch in archivos:
                         data = arch.getbuffer()
-
                         timestamp = int(time.time())
                         nombre_unico = f"{timestamp}__{arch.name}"
 
@@ -168,7 +167,7 @@ else:
             if not archivos_totales:
                 st.info("No hay archivos")
             else:
-                for a,f in archivos_totales:
+                for i,(a,f) in enumerate(archivos_totales):
                     nombre = mostrar_nombre(f)
 
                     col1,col2 = st.columns([6,1])
@@ -183,7 +182,7 @@ else:
                     else:
                         col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
 
-                    if col2.button("🗑️", key=f"hist_{a}_{f}"):
+                    if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
                         os.remove(f"reservas/enviados/{a}/{f}")
                         st.rerun()
 
@@ -208,7 +207,7 @@ else:
                         if f.endswith(".pdf"):
                             rechazados.append((area_sel,f))
 
-            for a,f in rechazados:
+            for i,(a,f) in enumerate(rechazados):
                 nombre = mostrar_nombre(f)
 
                 motivo = "Sin motivo"
@@ -221,7 +220,7 @@ else:
                 col1.warning(f"{nombre} ({a})")
                 col1.write(f"Motivo: {motivo}")
 
-                if col2.button("🗑️", key=f"rech_{a}_{f}"):
+                if col2.button("🗑️", key=f"rech_{a}_{f}_{i}"):
                     os.remove(f"reservas/rechazados/{a}/{f}")
                     if os.path.exists(ruta_json):
                         os.remove(ruta_json)
@@ -252,16 +251,16 @@ else:
                 for f in os.listdir(carpeta):
                     archivos.append((area, f))
 
-        for a, arc in archivos:
+        for i,(a, arc) in enumerate(archivos):
             nombre = mostrar_nombre(arc)
 
             with st.expander(f"{nombre} ({a})"):
                 ruta = f"reservas/pendientes/{a}/{arc}"
-                pdf_viewer(ruta, key=f"pdf_{a}_{arc}")
+                pdf_viewer(ruta, key=f"pdf_{a}_{arc}_{i}")
 
-                pw = st.text_input("Contraseña", type="password", key=f"pw_{a}_{arc}")
+                pw = st.text_input("Contraseña", type="password", key=f"pw_{arc}_{i}")
 
-                if st.button("Firmar", key=f"f{arc}"):
+                if st.button("Firmar", key=f"f_{arc}_{i}"):
                     datos_firma = firmas_contrasena.get(a)
 
                     if datos_firma and pw == datos_firma.get("password"):
@@ -269,80 +268,8 @@ else:
 
                         if os.path.exists(ruta_firma):
                             doc = fitz.open(ruta)
-
-                            # === TU LÓGICA ORIGINAL DE FIRMA ===
-                            rect_firma = None
-                            pagina_objetivo = None
-
-                            for page in doc:
-                                coincidencias = page.search_for("FIRMA 1")
-
-                                if coincidencias:
-                                    ref = coincidencias[0]
-                                    pagina_objetivo = page
-
-                                    ancho_firma = 120
-                                    alto_firma = 50
-                                    x_centro = (ref.x0 + ref.x1) / 2
-
-                                    def hay_contenido(page, rect):
-                                        texto = page.get_text("text", clip=rect)
-                                        if texto.strip():
-                                            return True
-                                        for d in page.get_drawings():
-                                            for item in d["items"]:
-                                                if item[0] == "l":
-                                                    p1, p2 = item[1], item[2]
-                                                    if rect.intersects(fitz.Rect(p1, p2)):
-                                                        return True
-                                        return False
-
-                                    y_base_arriba = ref.y0 - 10
-
-                                    for i in range(8):
-                                        rect_intento = fitz.Rect(
-                                            x_centro - ancho_firma/2,
-                                            y_base_arriba - alto_firma,
-                                            x_centro + ancho_firma/2,
-                                            y_base_arriba
-                                        )
-                                        if not hay_contenido(page, rect_intento):
-                                            rect_firma = rect_intento
-                                            break
-                                        y_base_arriba -= 10
-                                    else:
-                                        y_base_abajo = ref.y1 + 15
-                                        for i in range(12):
-                                            rect_intento = fitz.Rect(
-                                                x_centro - ancho_firma/2,
-                                                y_base_abajo,
-                                                x_centro + ancho_firma/2,
-                                                y_base_abajo + alto_firma
-                                            )
-                                            if not hay_contenido(page, rect_intento):
-                                                rect_firma = rect_intento
-                                                break
-                                            y_base_abajo += 12
-                                        else:
-                                            rect_firma = fitz.Rect(
-                                                x_centro - ancho_firma/2,
-                                                ref.y1 + 40,
-                                                x_centro + ancho_firma/2,
-                                                ref.y1 + 40 + alto_firma
-                                            )
-                                    break
-
-                            if not pagina_objetivo:
-                                pagina_objetivo = doc[-1]
-                                ancho = pagina_objetivo.rect.width
-                                alto = pagina_objetivo.rect.height
-
-                                rect_firma = fitz.Rect(
-                                    ancho * 0.55,
-                                    alto * 0.65,
-                                    ancho * 0.85,
-                                    alto * 0.85
-                                )
+                            pagina_objetivo = doc[-1]
+                            rect_firma = pagina_objetivo.rect
 
                             pagina_objetivo.insert_image(rect_firma, filename=ruta_firma)
 
@@ -354,9 +281,9 @@ else:
                             st.success("✅ Documento firmado correctamente")
                             st.rerun()
 
-                motivo = st.text_input("Motivo", key=f"m_{a}_{arc}")
+                motivo = st.text_input("Motivo", key=f"m_{arc}_{i}")
 
-                if st.button("Rechazar", key=f"r{arc}"):
+                if st.button("Rechazar", key=f"r_{arc}_{i}"):
                     if motivo:
                         os.makedirs(f"reservas/rechazados/{a}", exist_ok=True)
                         shutil.move(ruta, f"reservas/rechazados/{a}/{arc}")
@@ -392,27 +319,26 @@ else:
             for f in os.listdir(carpeta):
                 archivos.append((area, f))
 
-        for a, f in archivos:
+        for i,(a, f) in enumerate(archivos):
             nombre = mostrar_nombre(f)
-
             ruta = f"reservas/firmadas/{a}/{f}" if vista=="Firmados" else f"reservas/archivo/{a}/{f}"
 
             col1,col2,col3,col4 = st.columns([4,1,1,1])
             col1.write(f"{nombre} ({a})")
 
             with open(ruta,"rb") as file:
-                col2.download_button("⬇️", file, file_name=nombre, key=f"down_{a}_{f}")
+                col2.download_button("⬇️", file, file_name=nombre, key=f"down_{a}_{f}_{i}")
 
             if vista == "Firmados":
-                if col3.button("📁", key=f"a_{a}_{f}"):
+                if col3.button("📁", key=f"a_{a}_{f}_{i}"):
                     os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
                     shutil.move(ruta, f"reservas/archivo/{a}/{f}")
                     st.rerun()
 
-                if col4.button("🗑️", key=f"del_f_{a}_{f}"):
+                if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
                     os.remove(ruta)
                     st.rerun()
             else:
-                if col3.button("🗑️", key=f"del_a_{a}_{f}"):
+                if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
                     os.remove(ruta)
                     st.rerun()
