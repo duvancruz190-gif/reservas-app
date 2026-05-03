@@ -401,7 +401,7 @@ else:
             col1.write(f"{nombre} ({a})")
 
             with open(ruta,"rb") as file:
-                col2.download_button("⬇️", file, file_name=nombre)
+                col2.download_button("⬇️", file, file_name=nombre, key=f"down_{a}_{f}")
 
             if vista == "Firmados":
                 if col3.button("📁", key=f"a{f}"):
