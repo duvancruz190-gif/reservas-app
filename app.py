@@ -259,7 +259,7 @@ else:
                 ruta = f"reservas/pendientes/{a}/{arc}"
                 pdf_viewer(ruta, key=f"pdf_{a}_{arc}")
 
-                pw = st.text_input("Contraseña", type="password", key=arc)
+                pw = st.text_input("Contraseña", type="password", key=f"pw_{a}_{arc}")
 
                 if st.button("Firmar", key=f"f{arc}"):
                     datos_firma = firmas_contrasena.get(a)
@@ -354,7 +354,7 @@ else:
                             st.success("✅ Documento firmado correctamente")
                             st.rerun()
 
-                motivo = st.text_input("Motivo", key=f"m{arc}")
+                motivo = st.text_input("Motivo", key=f"m_{a}_{arc}")
 
                 if st.button("Rechazar", key=f"r{arc}"):
                     if motivo:
