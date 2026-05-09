@@ -232,6 +232,7 @@ else:
                 area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             with col2:
+                st.write("")  # ayuda a bajar el botón
                 if st.button("🔄"):
                     st.rerun()
 
