@@ -272,7 +272,7 @@ else:
 
                     nombre = mostrar_nombre(f)
 
-                    col1, col2 = st.columns([15, 1])
+                    col1, col2 = st.columns([1, 1])
 
                     ruta_firmado = f"reservas/firmadas/{a}/{f}"
                     ruta_rechazado = f"reservas/rechazados/{a}/{f}"
