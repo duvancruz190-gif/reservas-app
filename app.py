@@ -226,7 +226,7 @@ else:
 
             st.header("📄 Historial")
 
-            col1, col2 = st.columns([1, 1])
+            col1, col2 = st.columns([5, 1])
             
             with col1:        
                 area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
