@@ -227,12 +227,12 @@ else:
             st.header("📄 Historial")
 
             col1, col2 = st.columns([6, 1])
+                    
+            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             with col2:
                 if st.button("🔄"):
                     st.rerun()
-                    
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             archivos_totales = []
 
