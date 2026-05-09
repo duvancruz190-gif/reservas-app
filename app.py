@@ -226,6 +226,9 @@ else:
 
             st.header("📄 Historial")
 
+            if st.button("🔄 Actualizar historial"):
+                 st.rerun()
+
             area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             archivos_totales = []
