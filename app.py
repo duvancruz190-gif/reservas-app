@@ -192,9 +192,16 @@ else:
 # ================= HISTORIAL =================
         elif st.session_state.pagina == "historial":
 
-            st.header("📄 Historial")
+st.header("📄 Historial")
 
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+col1, col2 = st.columns([5,1])
+
+with col1:
+    area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+
+with col2:
+    if st.button("🔄", key="refresh_historial"):
+        st.rerun()
 
             archivos_totales = []
 
