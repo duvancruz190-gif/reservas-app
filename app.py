@@ -428,7 +428,7 @@ else:
 
                                 fecha_envio = datetime.strptime(
                                     metadata["fecha_envio"],
-                                    "%Y-%m-%d %H:%M"
+                                    "%Y-%m-%d %I:%M %p"
                                 )
 
                                 ahora = datetime.now()
@@ -439,7 +439,7 @@ else:
 
                                 metadata["estado"] = "Firmado"
                                 metadata["firmado_por"] = st.session_state.user_name
-                                metadata["fecha_firma"] = ahora.strftime("%Y-%m-%d %H:%M")
+                                metadata["fecha_firma"] = ahora.strftime("%Y-%m-%d %I:%M %p")
                                 metadata["tiempo_aprobacion"] = f"{minutos} minutos"
 
                                 with open(ruta_json, "w") as jf:
