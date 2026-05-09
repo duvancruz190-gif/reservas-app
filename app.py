@@ -146,7 +146,7 @@ else:
                         metadata = {
                             "archivo": arch.name,
                             "area": area,
-                            "fecha_envio": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "fecha_envio": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
                             "usuario_envio": st.session_state.user_name,
                             "estado": "Pendiente",
                             "firmado_por": "",
