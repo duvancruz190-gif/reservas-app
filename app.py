@@ -228,8 +228,8 @@ else:
 
             col1, col2 = st.columns([5, 1])
             
-                with col1:        
-                    area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+            with col1:        
+                area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             with col2:
                 if st.button("🔄"):
