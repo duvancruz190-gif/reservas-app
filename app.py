@@ -466,10 +466,10 @@ else:
             else:
 
                 st.info("No hay tiempos registrados")            
+                
+            st.header("✍️ Revisión y Firma")
 
-    st.header("✍️ Revisión y Firma")
-
-        col1, col2 = st.columns([5, 1])
+            col1, col2 = st.columns([5, 1])
 
         with col1:
             area = st.selectbox("Área", ["Todas"] + areas)
