@@ -391,7 +391,7 @@ else:
    
     archivos = []
 
-        if area == "Todas":
+    if area == "Todas":
 
             for a in areas:
 
