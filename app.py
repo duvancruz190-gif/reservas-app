@@ -380,93 +380,92 @@ else:
 
         # ===== DASHBOARD =====
 
-            st.header("📊 Dashboard General")
+        st.header("📊 Dashboard General")
 
-            total_enviados = 0
-            total_firmados = 0
-            total_rechazados = 0
-            pendientes = 0
+        total_enviados = 0
+        total_firmados = 0
+        total_rechazados = 0
+        pendientes = 0
 
-            tiempos = []
+        tiempos = []
+        datos_areas = {}
 
-            datos_areas = {}
+        for area_dash in areas:
 
-            for area_dash in areas:
+            enviados = f"reservas/enviados/{area_dash}"
 
-                enviados = f"reservas/enviados/{area_dash}"
+            if os.path.exists(enviados):
 
-                if os.path.exists(enviados):
+                for archivo in os.listdir(enviados):
 
-                    for archivo in os.listdir(enviados):
+                    if archivo.endswith(".json"):
 
-                        if archivo.endswith(".json"):
+                        with open(f"{enviados}/{archivo}", "r") as jf:
+                            data = json.load(jf)
 
-                            with open(f"{enviados}/{archivo}", "r") as jf:
+                        total_enviados += 1
 
-                                data = json.load(jf)
+                        estado = data.get("estado", "Pendiente")
 
-                            total_enviados += 1
+                        if estado == "Firmado":
+                            total_firmados += 1
 
-                            estado = data.get("estado", "Pendiente")
+                        elif estado == "Rechazado":
+                            total_rechazados += 1
 
-                            if estado == "Firmado":
-                                total_firmados += 1
+                        else:
+                            pendientes += 1
 
-                            elif estado == "Rechazado":
-                                total_rechazados += 1
+                        datos_areas[area_dash] = (
+                            datos_areas.get(area_dash, 0) + 1
+                        )
 
-                            else:
-                                pendientes += 1
+                        tiempo = data.get("tiempo_aprobacion", "")
 
-                            if area_dash not in datos_areas:
-                                datos_areas[area_dash] = 0
+                        if "minutos" in tiempo:
 
-                            datos_areas[area_dash] += 1
+                            minutos = int(tiempo.split()[0])
 
-                            tiempo = data.get("tiempo_aprobacion", "")
+                            tiempos.append(minutos)
 
-                            if "minutos" in tiempo:
+        # ===== KPIs =====
 
-                                minutos = int(tiempo.split()[0])
+        c1, c2, c3, c4 = st.columns(4)
 
-                                tiempos.append(minutos)
+        c1.metric("📄 Total", total_enviados)
+        c2.metric("✅ Firmados", total_firmados)
+        c3.metric("🚫 Rechazados", total_rechazados)
+        c4.metric("⏳ Pendientes", pendientes)
 
-            # ===== KPIs =====
-    
-            c1, c2, c3, c4 = st.columns(4)
+        st.divider()
 
-            c1.metric("📄 Total", total_enviados)
-            c2.metric("✅ Firmados", total_firmados)
-            c3.metric("🚫 Rechazados", total_rechazados)
-            c4.metric("⏳ Pendientes", pendientes)
+        # ===== GRÁFICA =====
 
-            st.divider()
+        st.subheader("📈 Reservas por Área")
 
-            # ===== GRÁFICA =====
+        st.bar_chart(datos_areas)
 
-            st.subheader("📈 Reservas por Área")
+        st.divider()
 
-            st.bar_chart(datos_areas)
+        # ===== TIEMPO =====
 
-            st.divider()
+        st.subheader("⏱ Tiempo Promedio de Firma")
 
-            # ===== TIEMPO PROMEDIO =====
+        if tiempos:
 
-            st.subheader("⏱ Tiempo Promedio de Firma")
+            promedio = sum(tiempos) / len(tiempos)
 
-            if tiempos:
+            st.metric(
+                "Promedio",
+                f"{round(promedio,1)} minutos"
+            )
 
-                promedio = sum(tiempos) / len(tiempos)
+        else:
 
-                st.metric(
-                    "Promedio",
-                    f"{round(promedio,1)} minutos"
-                )
+            st.info("No hay tiempos registrados")
 
-            else:
+        # ===== REVISIÓN =====
 
-                st.info("No hay tiempos registrados")            
-                
         st.header("✍️ Revisión y Firma")
 
         col1, col2 = st.columns([5, 1])
@@ -476,7 +475,7 @@ else:
 
         with col2:
             if st.button("🔄"):
-                st.rerun()
+                st.rerun()        
 
         archivos = []
 
