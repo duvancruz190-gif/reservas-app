@@ -351,12 +351,20 @@ else:
                 if os.path.exists(ruta_json):
 
                     with open(ruta_json) as ff:
-                        motivo = json.load(ff)["motivo"]
+                        data = json.load(ff)
+
+                        motivo = data.get("motivo", "Sin motivo")
+                        fecha_rechazo = data.get("fecha_rechazo", "Sin fecha")
+                        rechazado_por = data.get("rechazado_por", "Desconocido")
 
                 col1, col2 = st.columns([6, 1])
 
                 col1.warning(f"{nombre} ({a})")
                 col1.write(f"Motivo: {motivo}")
+                col1.caption(
+                f"📅 Rechazado: {fecha_rechazo} | "
+                f"👤 Por: {rechazado_por}"
+                )
 
                 if col2.button("🗑️", key=f"rech_{a}_{f}_{i}"):
 
@@ -587,7 +595,18 @@ else:
                         shutil.move(ruta, f"reservas/rechazados/{a}/{arc}")
 
                         with open(f"reservas/rechazados/{a}/{arc}.json", "w") as f:
-                            json.dump({"motivo": motivo}, f)
+                            
+                            json.dump(
+                                {
+                                    "motivo": motivo,
+                                    "fecha_rechazo": hora_colombia().strftime("%Y-%m-%d %I:%M %p"),
+                                    "rechazado_por": st.session_state.user_name,
+                                    "area": a,
+                                    "archivo": arc,
+                                },
+                                f,
+                                indent=4,
+                            )
 
                         # ===== ACTUALIZAR METADATA =====
                         ruta_json = f"reservas/enviados/{a}/{arc}.json"
@@ -598,6 +617,11 @@ else:
                                 metadata = json.load(jf)
 
                             metadata["estado"] = "Rechazado"
+                            metadata["fecha_rechazo"] = hora_colombia().strftime(
+                            "%Y-%m-%d %I:%M %p"
+                            )
+
+                            metadata["rechazado_por"] = st.session_state.user_name
 
                             with open(ruta_json, "w") as jf:
                                 json.dump(metadata, jf, indent=4)
