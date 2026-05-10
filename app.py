@@ -383,15 +383,15 @@ else:
         col1, col2 = st.columns([5, 1])
 
         with col1:
-           area = st.selectbox("Área", ["Todas"] + areas)
+            area = st.selectbox("Área", ["Todas"] + areas)
 
         with col2: 
-          if st.button("🔄"): 
-            st.rerun()
+            if st.button("🔄"): 
+                st.rerun()
    
-    archivos = []
+        archivos = []
 
-    if area == "Todas":
+        if area == "Todas":
 
             for a in areas:
 
