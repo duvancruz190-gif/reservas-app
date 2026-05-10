@@ -389,7 +389,7 @@ else:
          if st.button("🔄"): 
             st.rerun()
    
-        archivos = []
+    archivos = []
 
         if area == "Todas":
 
