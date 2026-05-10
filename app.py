@@ -378,105 +378,17 @@ else:
     # ================= INGENIERO =================
     elif rol == "ingeniero":
 
-        # ===== DASHBOARD =====
+       st.header("✍️ Revisión y Firma")
 
-        st.header("📊 Dashboard General")
+       col1, col2 = st.columns([5, 1])
 
-        total_enviados = 0
-        total_firmados = 0
-        total_rechazados = 0
-        pendientes = 0
+       with col1:
+          area = st.selectbox("Área", ["Todas"] + areas)
 
-        tiempos = []
-        datos_areas = {}
-
-        for area_dash in areas:
-
-            enviados = f"reservas/enviados/{area_dash}"
-
-            if os.path.exists(enviados):
-
-                for archivo in os.listdir(enviados):
-
-                    if archivo.endswith(".json"):
-
-                        with open(f"{enviados}/{archivo}", "r") as jf:
-                            data = json.load(jf)
-
-                        total_enviados += 1
-
-                        estado = data.get("estado", "Pendiente")
-
-                        if estado == "Firmado":
-                            total_firmados += 1
-
-                        elif estado == "Rechazado":
-                            total_rechazados += 1
-
-                        else:
-                            pendientes += 1
-
-                        datos_areas[area_dash] = (
-                            datos_areas.get(area_dash, 0) + 1
-                        )
-
-                        tiempo = data.get("tiempo_aprobacion", "")
-
-                        if "minutos" in tiempo:
-
-                            minutos = int(tiempo.split()[0])
-
-                            tiempos.append(minutos)
-
-        # ===== KPIs =====
-
-        c1, c2, c3, c4 = st.columns(4)
-
-        c1.metric("📄 Total", total_enviados)
-        c2.metric("✅ Firmados", total_firmados)
-        c3.metric("🚫 Rechazados", total_rechazados)
-        c4.metric("⏳ Pendientes", pendientes)
-
-        st.divider()
-
-        # ===== GRÁFICA =====
-
-        st.subheader("📈 Reservas por Área")
-
-        st.bar_chart(datos_areas)
-
-        st.divider()
-
-        # ===== TIEMPO =====
-
-        st.subheader("⏱ Tiempo Promedio de Firma")
-
-        if tiempos:
-
-            promedio = sum(tiempos) / len(tiempos)
-
-            st.metric(
-                "Promedio",
-                f"{round(promedio,1)} minutos"
-            )
-
-        else:
-
-            st.info("No hay tiempos registrados")
-
-        # ===== REVISIÓN =====
-
-        st.header("✍️ Revisión y Firma")
-
-        col1, col2 = st.columns([5, 1])
-
-        with col1:
-            area = st.selectbox("Área", ["Todas"] + areas)
-
-        with col2:
-            if st.button("🔄"):
-                st.rerun()        
-
+        with col2: 
+        if st.button("🔄"): 
+            st.rerun()
+   
         archivos = []
 
         if area == "Todas":
