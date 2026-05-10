@@ -385,8 +385,8 @@ else:
        with col1:
           area = st.selectbox("Área", ["Todas"] + areas)
 
-        with col2: 
-        if st.button("🔄"): 
+       with col2: 
+         if st.button("🔄"): 
             st.rerun()
    
         archivos = []
