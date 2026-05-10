@@ -402,8 +402,8 @@ else:
                     for f in os.listdir(carpeta):
                         archivos.append((a, f))
 
-    else:
-
+       else:
+    
             carpeta = f"reservas/pendientes/{area}"
 
             if os.path.exists(carpeta):
