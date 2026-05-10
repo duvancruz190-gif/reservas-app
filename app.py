@@ -431,28 +431,28 @@ else:
 
                                 tiempos.append(minutos)
 
-        # ===== KPIs =====
+            # ===== KPIs =====
+    
+            c1, c2, c3, c4 = st.columns(4)
 
-        c1, c2, c3, c4 = st.columns(4)
+            c1.metric("📄 Total", total_enviados)
+            c2.metric("✅ Firmados", total_firmados)
+            c3.metric("🚫 Rechazados", total_rechazados)
+            c4.metric("⏳ Pendientes", pendientes)
 
-        c1.metric("📄 Total", total_enviados)
-        c2.metric("✅ Firmados", total_firmados)
-        c3.metric("🚫 Rechazados", total_rechazados)
-        c4.metric("⏳ Pendientes", pendientes)
+            st.divider()
 
-        st.divider()
+            # ===== GRÁFICA =====
 
-        # ===== GRÁFICA =====
+            st.subheader("📈 Reservas por Área")
 
-        st.subheader("📈 Reservas por Área")
+            st.bar_chart(datos_areas)
 
-        st.bar_chart(datos_areas)
+            st.divider()
 
-        st.divider()
+            # ===== TIEMPO PROMEDIO =====
 
-        # ===== TIEMPO PROMEDIO =====
-
-        st.subheader("⏱ Tiempo Promedio de Firma")
+            st.subheader("⏱ Tiempo Promedio de Firma")
 
         if tiempos:
 
