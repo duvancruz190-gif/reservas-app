@@ -467,7 +467,7 @@ else:
 
                 st.info("No hay tiempos registrados")            
 
-            st.header("✍️ Revisión y Firma")
+    st.header("✍️ Revisión y Firma")
 
         col1, col2 = st.columns([5, 1])
 
