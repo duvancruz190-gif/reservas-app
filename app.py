@@ -44,7 +44,6 @@ for carpeta in [
     "reservas/archivo",
     "reservas/enviados",
     "reservas/rechazados",
-    "ETERNITTTTT.png",
 ]:
     os.makedirs(carpeta, exist_ok=True)
 
