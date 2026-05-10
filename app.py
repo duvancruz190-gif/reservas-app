@@ -454,18 +454,18 @@ else:
 
             st.subheader("⏱ Tiempo Promedio de Firma")
 
-        if tiempos:
+            if tiempos:
 
-            promedio = sum(tiempos) / len(tiempos)
+                promedio = sum(tiempos) / len(tiempos)
 
-            st.metric(
-                "Promedio",
-                f"{round(promedio,1)} minutos"
-            )
+                st.metric(
+                    "Promedio",
+                    f"{round(promedio,1)} minutos"
+                )
 
-        else:
+            else:
 
-            st.info("No hay tiempos registrados")            
+                st.info("No hay tiempos registrados")            
 
         st.header("✍️ Revisión y Firma")
 
