@@ -684,7 +684,7 @@ else:
                 else f"reservas/archivo/{a}/{f}"
             )
 
-            col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 2])
+            col1, col2, col3, col4, col5 = st.columns([5, 1, 1, 1, 3])
 
             col1.write(f"{nombre} ({a})")
 
@@ -722,14 +722,25 @@ else:
                     st.rerun()
 
                 # ===== RECHAZAR =====
-                with col5:
+with col5:
 
-                    motivo = st.text_input(
-                        "Motivo",
-                        key=f"mot_alm_{a}_{f}_{i}"
-                    )
+    sub1, sub2 = st.columns([3, 1])
 
-                    if st.button("🚫", key=f"rech_alm_{a}_{f}_{i}"):
+    with sub1:
+        motivo = st.text_input(
+            "Motivo",
+            key=f"mot_alm_{a}_{f}_{i}",
+            label_visibility="collapsed",
+            placeholder="Motivo"
+        )
+
+    with sub2:
+        rechazar = st.button(
+            "🚫",
+            key=f"rech_alm_{a}_{f}_{i}"
+        )
+
+    if rechazar:
 
                         if motivo:
 
