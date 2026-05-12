@@ -693,7 +693,6 @@ for i, (a, f) in enumerate(archivos):
         if vista == "Firmados"
         else f"reservas/archivo/{a}/{f}"
     )
-
             col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 2])
 
 col1.write(f"{nombre} ({a})")
