@@ -684,115 +684,115 @@ else:
                 else f"reservas/archivo/{a}/{f}"
             )
 
-for i, (a, f) in enumerate(archivos):
-
-    nombre = mostrar_nombre(f)
-
-    ruta = (
-        f"reservas/firmadas/{a}/{f}"
-        if vista == "Firmados"
-        else f"reservas/archivo/{a}/{f}"
-    )
             col1, col2, col3, col4, col5 = st.columns([4, 1, 1, 1, 2])
 
-col1.write(f"{nombre} ({a})")
+            col1.write(f"{nombre} ({a})")
 
-with open(ruta, "rb") as file:
+            with open(ruta, "rb") as file:
 
-    col2.download_button(
-        "⬇️", file, file_name=nombre, key=f"down_{a}_{f}_{i}"
-    )
-
-if vista == "Firmados":
-
-    # ===== ARCHIVAR =====
-    if col3.button("📁", key=f"a_{a}_{f}_{i}"):
-
-        os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
-
-        shutil.move(ruta, f"reservas/archivo/{a}/{f}")
-
-        st.rerun()
-
-    # ===== ELIMINAR =====
-    if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
-
-        try:
-            os.remove(ruta)
-        except:
-            pass
-
-        st.rerun()
-
-    # ===== RECHAZAR =====
-    with col5:
-
-        motivo = st.text_input(
-            "Motivo",
-            key=f"mot_alm_{a}_{f}_{i}"
-        )
-
-        if st.button("🚫", key=f"rech_alm_{a}_{f}_{i}"):
-
-            if motivo:
-
-                os.makedirs(f"reservas/rechazados/{a}", exist_ok=True)
-
-                shutil.move(
-                    ruta,
-                    f"reservas/rechazados/{a}/{f}"
+                col2.download_button(
+                    "⬇️",
+                    file,
+                    file_name=nombre,
+                    key=f"down_{a}_{f}_{i}"
                 )
 
-                # ===== JSON RECHAZO =====
-                with open(
-                    f"reservas/rechazados/{a}/{f}.json",
-                    "w"
-                ) as ff:
+            if vista == "Firmados":
 
-                    json.dump(
-                        {
-                            "motivo": motivo,
-                            "fecha_rechazo": hora_colombia().strftime(
-                                "%Y-%m-%d %I:%M %p"
-                            ),
-                            "rechazado_por": st.session_state.user_name,
-                            "area": a,
-                            "archivo": f,
-                        },
-                        ff,
-                        indent=4,
+                # ===== ARCHIVAR =====
+                if col3.button("📁", key=f"a_{a}_{f}_{i}"):
+
+                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+
+                    shutil.move(
+                        ruta,
+                        f"reservas/archivo/{a}/{f}"
                     )
 
-                # ===== ACTUALIZAR METADATA =====
-                ruta_json = f"reservas/enviados/{a}/{f}.json"
+                    st.rerun()
 
-                if os.path.exists(ruta_json):
+                # ===== ELIMINAR =====
+                if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
 
-                    with open(ruta_json, "r") as jf:
-                        metadata = json.load(jf)
+                    try:
+                        os.remove(ruta)
+                    except:
+                        pass
 
-                    metadata["estado"] = "Rechazado"
-                    metadata["fecha_rechazo"] = hora_colombia().strftime(
-                        "%Y-%m-%d %I:%M %p"
+                    st.rerun()
+
+                # ===== RECHAZAR =====
+                with col5:
+
+                    motivo = st.text_input(
+                        "Motivo",
+                        key=f"mot_alm_{a}_{f}_{i}"
                     )
 
-                    metadata["rechazado_por"] = st.session_state.user_name
-                    metadata["motivo_rechazo"] = motivo
+                    if st.button("🚫", key=f"rech_alm_{a}_{f}_{i}"):
 
-                    with open(ruta_json, "w") as jf:
-                        json.dump(metadata, jf, indent=4)
+                        if motivo:
 
-                st.success("Documento rechazado")
+                            os.makedirs(
+                                f"reservas/rechazados/{a}",
+                                exist_ok=True
+                            )
 
-                st.rerun()
+                            shutil.move(
+                                ruta,
+                                f"reservas/rechazados/{a}/{f}"
+                            )
 
-else:
+                            # ===== JSON RECHAZO =====
+                            with open(
+                                f"reservas/rechazados/{a}/{f}.json",
+                                "w"
+                            ) as ff:
 
-    if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
+                                json.dump(
+                                    {
+                                        "motivo": motivo,
+                                        "fecha_rechazo": hora_colombia().strftime(
+                                            "%Y-%m-%d %I:%M %p"
+                                        ),
+                                        "rechazado_por": st.session_state.user_name,
+                                        "area": a,
+                                        "archivo": f,
+                                    },
+                                    ff,
+                                    indent=4,
+                                )
 
-        try:
-            os.remove(ruta)
-        except:
-            pass
+                            # ===== ACTUALIZAR METADATA =====
+                            ruta_json = f"reservas/enviados/{a}/{f}.json"
 
-        st.rerun()
+                            if os.path.exists(ruta_json):
+
+                                with open(ruta_json, "r") as jf:
+                                    metadata = json.load(jf)
+
+                                metadata["estado"] = "Rechazado"
+                                metadata["fecha_rechazo"] = hora_colombia().strftime(
+                                    "%Y-%m-%d %I:%M %p"
+                                )
+
+                                metadata["rechazado_por"] = st.session_state.user_name
+                                metadata["motivo_rechazo"] = motivo
+
+                                with open(ruta_json, "w") as jf:
+                                    json.dump(metadata, jf, indent=4)
+
+                            st.success("Documento rechazado")
+
+                            st.rerun()
+
+            else:
+
+                if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
+
+                    try:
+                        os.remove(ruta)
+                    except:
+                        pass
+
+                    st.rerun()
