@@ -629,6 +629,7 @@ else:
                         st.rerun()
 
     # ================= ALMACÉN =================
+       # ================= ALMACÉN =================
     elif rol == "almacen":
 
         st.header("📦 Gestión de Documentos")
@@ -661,24 +662,20 @@ else:
                     for f in os.listdir(carpeta):
                         archivos.append((a, f))
 
-else:
+        else:
 
-    carpeta = (
-        f"reservas/firmadas/{area}"
-        if vista == "Firmados"
-        else f"reservas/archivo/{area}"
-    )
-
-    os.makedirs(carpeta, exist_ok=True)
-
-    for f in os.listdir(carpeta):
-        archivos.append((area, f))
+            carpeta = (
+                f"reservas/firmadas/{area}"
+                if vista == "Firmados"
+                else f"reservas/archivo/{area}"
+            )
 
             os.makedirs(carpeta, exist_ok=True)
 
             for f in os.listdir(carpeta):
                 archivos.append((area, f))
 
+        # ===== MOSTRAR ARCHIVOS =====
         for i, (a, f) in enumerate(archivos):
 
             nombre = mostrar_nombre(f)
@@ -691,8 +688,10 @@ else:
 
             col1, col2, col3, col4, col5 = st.columns([5, 1, 1, 1, 3])
 
+            # ===== NOMBRE =====
             col1.write(f"{nombre} ({a})")
 
+            # ===== DESCARGAR =====
             with open(ruta, "rb") as file:
 
                 col2.download_button(
@@ -702,6 +701,7 @@ else:
                     key=f"down_{a}_{f}_{i}"
                 )
 
+            # ================= FIRMADOS =================
             if vista == "Firmados":
 
                 # ===== ARCHIVAR =====
@@ -727,25 +727,26 @@ else:
                     st.rerun()
 
                 # ===== RECHAZAR =====
-with col5:
+                with col5:
 
-    sub1, sub2 = st.columns([3, 1])
+                    sub1, sub2 = st.columns([3, 1])
 
-    with sub1:
-        motivo = st.text_input(
-            "Motivo",
-            key=f"mot_alm_{a}_{f}_{i}",
-            label_visibility="collapsed",
-            placeholder="Motivo"
-        )
+                    with sub1:
 
-    with sub2:
-        rechazar = st.button(
-            "🚫",
-            key=f"rech_alm_{a}_{f}_{i}"
-        )
+                        motivo = st.text_input(
+                            "",
+                            key=f"mot_alm_{a}_{f}_{i}",
+                            placeholder="Motivo"
+                        )
 
-    if rechazar:
+                    with sub2:
+
+                        rechazar = st.button(
+                            "🚫",
+                            key=f"rech_alm_{a}_{f}_{i}"
+                        )
+
+                    if rechazar:
 
                         if motivo:
 
@@ -802,6 +803,7 @@ with col5:
 
                             st.rerun()
 
+            # ================= ARCHIVADOS =================
             else:
 
                 if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
