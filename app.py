@@ -661,13 +661,18 @@ else:
                     for f in os.listdir(carpeta):
                         archivos.append((a, f))
 
-                    else:
+else:
 
-            carpeta = (
-                f"reservas/firmadas/{area}"
-                if vista == "Firmados"
-                else f"reservas/archivo/{area}"
-            )
+    carpeta = (
+        f"reservas/firmadas/{area}"
+        if vista == "Firmados"
+        else f"reservas/archivo/{area}"
+    )
+
+    os.makedirs(carpeta, exist_ok=True)
+
+    for f in os.listdir(carpeta):
+        archivos.append((area, f))
 
             os.makedirs(carpeta, exist_ok=True)
 
