@@ -271,37 +271,29 @@ else:
 
                     ruta_firmado = f"reservas/firmadas/{a}/{f}"
                     ruta_rechazado = f"reservas/rechazados/{a}/{f}"
-
-                    if os.path.exists(ruta_firmado):
-                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
-
-                    elif os.path.exists(ruta_rechazado):
-                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado")
-
-                    else:
-                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
-
+# --- NUEVO BLOQUE UNIFICADO ---
                     ruta_json = f"reservas/enviados/{a}/{f}.json"
-
+                    metadata = {}
                     if os.path.exists(ruta_json):
-
                         with open(ruta_json, "r") as jf:
                             metadata = json.load(jf)
 
+                    if os.path.exists(ruta_firmado):
+                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
+                    elif os.path.exists(ruta_rechazado):
+                        # Aquí unimos el Rechazo con el Motivo en una sola caja roja
+                        razon = metadata.get("motivo_rechazo", "Sin motivo")
+                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}")
+                    else:
+                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
+
+                    # Aquí ponemos la fecha y el tiempo en letras chiquitas abajo
+                    if metadata:
                         col1.caption(
                             f"📅 Enviado: {metadata.get('fecha_envio','')} | "
                             f"✍️ Firma: {metadata.get('fecha_firma','')} | "
                             f"⏱️ Tiempo: {metadata.get('tiempo_aprobacion','')}"
                         )
-
-                        if metadata.get("estado") == "Rechazado":
-
-                            motivo = metadata.get(
-                                "motivo_rechazo",
-                                "Sin motivo"
-                            )
-
-                            col1.error(f"🚫 Motivo: {motivo}")
 
                     if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
 
