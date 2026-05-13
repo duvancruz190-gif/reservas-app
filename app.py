@@ -281,28 +281,25 @@ else:
                     else:
                         col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
 
-                    ruta_json = f"reservas/enviados/{a}/{f}.json"
+ruta_json = f"reservas/enviados/{a}/{f}.json"
 
-                                        if os.path.exists(ruta_json):
+if os.path.exists(ruta_json):
 
-                        with open(ruta_json, "r") as jf:
-                            metadata = json.load(jf)
+    with open(ruta_json, "r") as jf:
+        metadata = json.load(jf)
 
-                        col1.caption(
-                            f"📅 Enviado: {metadata.get('fecha_envio','')} | "
-                            f"✍️ Firma: {metadata.get('fecha_firma','')} | "
-                            f"⏱️ Tiempo: {metadata.get('tiempo_aprobacion','')}"
-                        )
+    col1.caption(
+        f"📅 Enviado: {metadata.get('fecha_envio','')} | "
+        f"✍️ Firma: {metadata.get('fecha_firma','')} | "
+        f"⏱️ Tiempo: {metadata.get('tiempo_aprobacion','')}"
+    )
 
-                        if metadata.get("estado") == "Rechazado":
+    if metadata.get("estado") == "Rechazado":
 
-                            motivo = metadata.get(
-                                "motivo_rechazo",
-                                "Sin motivo"
-                            )
+        motivo = metadata.get("motivo_rechazo", "Sin motivo")
 
-                            col1.error(f"🚫 Motivo: {motivo}")                        
-                        
+        col1.error(f"🚫 Motivo: {motivo}")   
+        
                     if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
 
                         os.remove(f"reservas/enviados/{a}/{f}")
