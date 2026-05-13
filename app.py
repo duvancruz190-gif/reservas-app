@@ -280,7 +280,6 @@ else:
 
                     else:
                         col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
-
 ruta_json = f"reservas/enviados/{a}/{f}.json"
 
 if os.path.exists(ruta_json):
@@ -298,15 +297,16 @@ if os.path.exists(ruta_json):
 
         motivo = metadata.get("motivo_rechazo", "Sin motivo")
 
-        col1.error(f"🚫 Motivo: {motivo}")   
-                    if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
+        col1.error(f"🚫 Motivo: {motivo}")
 
-                        os.remove(f"reservas/enviados/{a}/{f}")
+if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
 
-                        if os.path.exists(ruta_json):
-                            os.remove(ruta_json)
+    os.remove(f"reservas/enviados/{a}/{f}")
 
-                        st.rerun()
+    if os.path.exists(ruta_json):
+        os.remove(ruta_json)
+
+    st.rerun()
 
     # ================= INGENIERO =================
     elif rol == "ingeniero":
