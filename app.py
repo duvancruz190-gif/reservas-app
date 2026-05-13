@@ -639,6 +639,7 @@ elif rol == "almacen":
         area = st.selectbox("Área", ["Todas"] + areas)
 
     with col2:
+        st.write("")
         if st.button("🔄", key="refresh_almacen"):
             st.rerun()
 
@@ -659,7 +660,9 @@ elif rol == "almacen":
             if os.path.exists(carpeta):
 
                 for f in os.listdir(carpeta):
-                    archivos.append((a, f))
+
+                    if f.endswith(".pdf"):
+                        archivos.append((a, f))
 
     else:
 
@@ -672,7 +675,9 @@ elif rol == "almacen":
         os.makedirs(carpeta, exist_ok=True)
 
         for f in os.listdir(carpeta):
-            archivos.append((area, f))
+
+            if f.endswith(".pdf"):
+                archivos.append((area, f))
 
     # ===== MOSTRAR ARCHIVOS =====
     for i, (a, f) in enumerate(archivos):
@@ -688,42 +693,49 @@ elif rol == "almacen":
         col1, col2, col3, col4, col5 = st.columns([5, 1, 1, 1, 3])
 
         # ===== NOMBRE =====
-        col1.write(f"{nombre} ({a})")
+        with col1:
+            st.write(f"📄 {nombre} ({a})")
 
         # ===== DESCARGAR =====
-        with open(ruta, "rb") as file:
+        with col2:
 
-            col2.download_button(
-                "⬇️",
-                file,
-                file_name=nombre,
-                key=f"down_{a}_{f}_{i}"
-            )
+            with open(ruta, "rb") as file:
+
+                st.download_button(
+                    "⬇️",
+                    file,
+                    file_name=nombre,
+                    key=f"down_{a}_{f}_{i}"
+                )
 
         # ================= FIRMADOS =================
         if vista == "Firmados":
 
             # ===== ARCHIVAR =====
-            if col3.button("📁", key=f"a_{a}_{f}_{i}"):
+            with col3:
 
-                os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+                if st.button("📁", key=f"a_{a}_{f}_{i}"):
 
-                shutil.move(
-                    ruta,
-                    f"reservas/archivo/{a}/{f}"
-                )
+                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
 
-                st.rerun()
+                    shutil.move(
+                        ruta,
+                        f"reservas/archivo/{a}/{f}"
+                    )
+
+                    st.rerun()
 
             # ===== ELIMINAR =====
-            if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
+            with col4:
 
-                try:
-                    os.remove(ruta)
-                except:
-                    pass
+                if st.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
 
-                st.rerun()
+                    try:
+                        os.remove(ruta)
+                    except:
+                        pass
+
+                    st.rerun()
 
             # ===== RECHAZAR =====
             with col5:
@@ -740,6 +752,8 @@ elif rol == "almacen":
                     )
 
                 with sub2:
+
+                    st.write("")
 
                     rechazar = st.button(
                         "🚫",
@@ -789,6 +803,7 @@ elif rol == "almacen":
                                 metadata = json.load(jf)
 
                             metadata["estado"] = "Rechazado"
+
                             metadata["fecha_rechazo"] = hora_colombia().strftime(
                                 "%Y-%m-%d %I:%M %p"
                             )
@@ -804,13 +819,15 @@ elif rol == "almacen":
                         st.rerun()
 
         # ================= ARCHIVADOS =================
-        else:
+        elif vista == "Archivados":
 
-            if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
+            with col3:
 
-                try:
-                    os.remove(ruta)
-                except:
-                    pass
+                if st.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
 
-                st.rerun()
+                    try:
+                        os.remove(ruta)
+                    except:
+                        pass
+
+                    st.rerun()
