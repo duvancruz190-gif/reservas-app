@@ -299,7 +299,6 @@ if os.path.exists(ruta_json):
         motivo = metadata.get("motivo_rechazo", "Sin motivo")
 
         col1.error(f"🚫 Motivo: {motivo}")   
-        
                     if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
 
                         os.remove(f"reservas/enviados/{a}/{f}")
