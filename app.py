@@ -134,10 +134,6 @@ else:
                 st.session_state.pagina = "historial"
                 st.rerun()
 
-            if st.button("📛 Rechazados"):
-                st.session_state.pagina = "rechazados"
-                st.rerun()
-
         st.markdown("---")
 
         if st.button("🚪 Cerrar sesión", use_container_width=True):
@@ -289,15 +285,24 @@ else:
 
                     if os.path.exists(ruta_json):
 
-                        with open(ruta_json, "r") as jf:
-                            metadata = json.load(jf)
+if os.path.exists(ruta_json):
 
-                        col1.caption(
-                            f"📅 Enviado: {metadata.get('fecha_envio','')} | "
-                            f"✍️ Firma: {metadata.get('fecha_firma','')} | "
-                            f"⏱️ Tiempo: {metadata.get('tiempo_aprobacion','')}"
-                        )
+    with open(ruta_json, "r") as jf:
+        metadata = json.load(jf)
 
+    col1.caption(
+        f"📅 Enviado: {metadata.get('fecha_envio','')} | "
+        f"✍️ Firma: {metadata.get('fecha_firma','')} | "
+        f"⏱️ Tiempo: {metadata.get('tiempo_aprobacion','')}"
+    )
+
+    if metadata.get("estado") == "Rechazado":
+
+        motivo = metadata.get("motivo_rechazo", "Sin motivo")
+
+        col1.error(f"🚫 Motivo: {motivo}")                        
+                        
+                        
                     if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
 
                         os.remove(f"reservas/enviados/{a}/{f}")
@@ -306,74 +311,6 @@ else:
                             os.remove(ruta_json)
 
                         st.rerun()
-
-        # ================= RECHAZADOS =================
-        elif st.session_state.pagina == "rechazados":
-
-            st.header("📛 Archivos Rechazados")
-
-            area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
-
-            rechazados = []
-
-            if area_sel == "Todas":
-
-                for a in areas:
-
-                    ruta = f"reservas/rechazados/{a}"
-
-                    if os.path.exists(ruta):
-
-                        for f in os.listdir(ruta):
-
-                            if f.endswith(".pdf"):
-                                rechazados.append((a, f))
-
-            else:
-
-                ruta = f"reservas/rechazados/{area_sel}"
-
-                if os.path.exists(ruta):
-
-                    for f in os.listdir(ruta):
-
-                        if f.endswith(".pdf"):
-                            rechazados.append((area_sel, f))
-
-            for i, (a, f) in enumerate(rechazados):
-
-                nombre = mostrar_nombre(f)
-
-                motivo = "Sin motivo"
-
-                ruta_json = f"reservas/rechazados/{a}/{f}.json"
-
-                if os.path.exists(ruta_json):
-
-                    with open(ruta_json) as ff:
-                        data = json.load(ff)
-
-                        motivo = data.get("motivo", "Sin motivo")
-                        fecha_rechazo = data.get("fecha_rechazo", "Sin fecha")
-                        rechazado_por = data.get("rechazado_por", "Desconocido")
-
-                col1, col2 = st.columns([6, 1])
-
-                col1.warning(f"{nombre} ({a})")
-                col1.write(f"Motivo: {motivo}")
-                col1.caption(
-                f"📅 Rechazado: {fecha_rechazo} | "
-                f"👤 Por: {rechazado_por}"
-                )
-
-                if col2.button("🗑️", key=f"rech_{a}_{f}_{i}"):
-
-                    os.remove(f"reservas/rechazados/{a}/{f}")
-
-                    if os.path.exists(ruta_json):
-                        os.remove(ruta_json)
-
-                    st.rerun()
 
     # ================= INGENIERO =================
     elif rol == "ingeniero":
@@ -622,6 +559,7 @@ else:
                             )
 
                             metadata["rechazado_por"] = st.session_state.user_name
+                            metadata["motivo_rechazo"] = motivo
 
                             with open(ruta_json, "w") as jf:
                                 json.dump(metadata, jf, indent=4)
