@@ -686,7 +686,10 @@ else:
                 else f"reservas/archivo/{a}/{f}"
             )
 
-            col1, col2, col3, col4, col5 = st.columns([5, 1, 1, 1, 3])
+            col1, col2, col3, col4, col5 = st.columns(
+                [5, 1, 1, 1, 3])
+                 vertical_alignment="center"
+            )
 
             # ===== NOMBRE =====
             col1.write(f"{nombre} ({a})")
@@ -734,9 +737,10 @@ else:
                     with sub1:
 
                         motivo = st.text_input(
-                            "",
+                            " ",
                             key=f"mot_alm_{a}_{f}_{i}",
-                            placeholder="Motivo"
+                            placeholder="Motivo",
+                            label_visibility="collapsed"
                         )
 
                     with sub2:
