@@ -277,24 +277,15 @@ else:
                     if os.path.exists(ruta_json):
                         with open(ruta_json, "r") as jf:
                             metadata = json.load(jf)
-estado = metadata.get("estado", "Pendiente")
 
-if estado == "Firmado":
-    col1.success(f"{nombre} ({a}) - 🟢 Firmado")
-
-elif estado == "Entregado":
-    col1.info(f"{nombre} ({a}) - 📦 Entregado")
-
-elif estado == "Rechazado":
-
-    razon = metadata.get("motivo_rechazo", "Sin motivo")
-
-    col1.error(
-        f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
-    )
-
-else:
-    col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
+                    if os.path.exists(ruta_firmado):
+                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
+                    elif os.path.exists(ruta_rechazado):
+                        # Aquí unimos el Rechazo con el Motivo en una sola caja roja
+                        razon = metadata.get("motivo_rechazo", "Sin motivo")
+                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}")
+                    else:
+                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
 
                     # Aquí ponemos la fecha y el tiempo en letras chiquitas abajo
                     if metadata:
