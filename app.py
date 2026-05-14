@@ -648,7 +648,7 @@ else:
                 )
                 
 # ================= FIRMADOS =================
-if vista == "Firmados":
+    if vista == "Firmados":
 
     # ===== ARCHIVAR =====
     if col3.button("📁", key=f"a_{a}_{f}_{i}"):
