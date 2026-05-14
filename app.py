@@ -651,38 +651,37 @@ else:
             if vista == "Firmados":
 
                 # ===== ARCHIVAR =====
-                if col3.button("📁", key=f"a_{a}_{f}_{i}"):
+if col3.button("📁", key=f"a_{a}_{f}_{i}"):
 
-                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
 
-                    shutil.move(
-                        ruta,
-                        f"reservas/archivo/{a}/{f}"
-                    )
-                    
-                    # ===== ACTUALIZAR METADATA =====
-                    ruta_json = f"reservas/enviados/{a}/{f}.json"
+    shutil.move(
+        ruta,
+        f"reservas/archivo/{a}/{f}"
+    )
 
-                    if os.path.exists(ruta_json):
+    # ===== ACTUALIZAR METADATA =====
+    ruta_json = f"reservas/enviados/{a}/{f}.json"
 
-                        with open(ruta_json, "r") as jf:
-                             metadata = json.load(jf)
+    if os.path.exists(ruta_json):
 
-                    metadata["estado"] = "Entregado"
+        with open(ruta_json, "r") as jf:
+            metadata = json.load(jf)
 
-                    metadata["fecha_entrega"] = hora_colombia().strftime(
-                        "%Y-%m-%d %I:%M %p"
-                    )
+        metadata["estado"] = "Entregado"
 
-                    metadata["entregado_por"] = st.session_state.user_name
+        metadata["fecha_entrega"] = hora_colombia().strftime(
+            "%Y-%m-%d %I:%M %p"
+        )
 
-                    with open(ruta_json, "w") as jf:
-                        json.dump(metadata, jf, indent=4)
+        metadata["entregado_por"] = st.session_state.user_name
 
-                st.success("✅ Documento entregado")
-                
-                st.rerun()
+        with open(ruta_json, "w") as jf:
+            json.dump(metadata, jf, indent=4)
 
+    st.success("✅ Documento entregado")
+
+    st.rerun()
                 # ===== ELIMINAR =====
                 if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
 
