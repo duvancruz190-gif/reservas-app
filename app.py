@@ -651,47 +651,37 @@ else:
             if vista == "Firmados":
 
                 # ===== ARCHIVAR =====
-                if col3.button("📁", key=f"a_{a}_{f}_{i}"):
+if col3.button("📁", key=f"a_{a}_{f}_{i}"):
 
-                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
 
-                    shutil.move(
-                        ruta,
-                        f"reservas/archivo/{a}/{f}"
-                    )
+    shutil.move(
+        ruta,
+        f"reservas/archivo/{a}/{f}"
+    )
 
-                # ===== ACTUALIZAR METADATA =====
-                ruta_json = f"reservas/enviados/{a}/{f}.json"
+    # ===== ACTUALIZAR METADATA =====
+    ruta_json = f"reservas/enviados/{a}/{f}.json"
 
-                if os.path.exists(ruta_json):
+    if os.path.exists(ruta_json):
 
-                    with open(ruta_json, "r") as jf:
-                        metadata = json.load(jf)
+        with open(ruta_json, "r") as jf:
+            metadata = json.load(jf)
 
-                    metadata["estado"] = "Entregado"
+        metadata["estado"] = "Entregado"
 
-                    metadata["fecha_entrega"] = hora_colombia().strftime(
-                        "%Y-%m-%d %I:%M %p"
-                    )
+        metadata["fecha_entrega"] = hora_colombia().strftime(
+            "%Y-%m-%d %I:%M %p"
+        )
 
-                    metadata["entregado_por"] = st.session_state.user_name
+        metadata["entregado_por"] = st.session_state.user_name
 
-                    with open(ruta_json, "w") as jf:
-                        json.dump(metadata, jf, indent=4)
+        with open(ruta_json, "w") as jf:
+            json.dump(metadata, jf, indent=4)
 
-                st.success("✅ Documento entregado")
-                
-                st.rerun()
+    st.success("✅ Documento entregado")
 
-                # ===== ELIMINAR =====
-                if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
-
-                    try:
-                        os.remove(ruta)
-                    except:
-                        pass
-
-                    st.rerun()
+    st.rerun()
 
                 # ===== RECHAZAR =====
                 with col5:
