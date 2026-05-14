@@ -52,6 +52,7 @@ unsafe_allow_html=True,
 # ================= HORA COLOMBIA =================
 
 def hora_colombia():
+# Hora Colombia
 return datetime.now(ZoneInfo("America/Bogota"))
 
 # ================= CARPETAS =================
