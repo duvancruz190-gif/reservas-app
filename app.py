@@ -680,6 +680,7 @@ else:
                         json.dump(metadata, jf, indent=4)
 
                 st.success("✅ Documento entregado")
+                
                 st.rerun()
 
                 # ===== ELIMINAR =====
