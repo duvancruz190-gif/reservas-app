@@ -660,7 +660,28 @@ else:
                         f"reservas/archivo/{a}/{f}"
                     )
 
-                    st.rerun()
+                # ===== ACTUALIZAR METADATA =====
+                ruta_json = f"reservas/enviados/{a}/{f}.json"
+
+                if os.path.exists(ruta_json):
+
+                    with open(ruta_json, "r") as jf:
+                        metadata = json.load(jf)
+
+                    metadata["estado"] = "Entregado"
+
+                    metadata["fecha_entrega"] = hora_colombia().strftime(
+                        "%Y-%m-%d %I:%M %p"
+                    )
+
+                    metadata["entregado_por"] = st.session_state.user_name
+
+                    with open(ruta_json, "w") as jf:
+                        json.dump(metadata, jf, indent=4)
+
+                st.success("✅ Documento entregado")
+                
+                st.rerun()
 
                 # ===== ELIMINAR =====
                 if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
