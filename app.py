@@ -15,7 +15,6 @@ st.markdown(
     """
 <style>
 .stApp { background-color: #f5f7fa; }
-
 .stButton>button {
     background-color: #005baa;
     color: white;
@@ -23,26 +22,19 @@ st.markdown(
     height: 45px;
     font-weight: bold;
 }
-
-.stButton>button:hover {
-    background-color: #003f7d;
-}
-
-section[data-testid="stSidebar"] {
-    background-color: #002b5c;
-}
-
-section[data-testid="stSidebar"] * {
-    color: white !important;
-}
+.stButton>button:hover { background-color: #003f7d; }
+section[data-testid="stSidebar"] { background-color: #002b5c; }
+section[data-testid="stSidebar"] * { color: white !important; }
 </style>
 """,
     unsafe_allow_html=True,
 )
 
+
 # --- HORA COLOMBIA ---
 def hora_colombia():
     return datetime.now(ZoneInfo("America/Bogota"))
+
 
 # --- CARPETAS ---
 for carpeta in [
@@ -75,25 +67,20 @@ usuarios = {
 }
 
 firmas_contrasena = {
-    "Producción": {
-        "archivo": "reservas/firmas/Imagen1.png",
-        "password": "1234",
-    },
-    "Logística": {
-        "archivo": "reservas/firmas/LogisticaRojas.png",
-        "password": "5678",
-    },
+    "Producción": {"archivo": "reservas/firmas/Imagen1.png", "password": "1234"},
+    "Logística": {"archivo": "reservas/firmas/LogisticaRojas.png", "password": "5678"},
 }
+
 
 def mostrar_nombre(f):
     return f.split("__", 1)[-1]
+
 
 if "login" not in st.session_state:
     st.session_state.login = False
 
 # ================= LOGIN =================
 if not st.session_state.login:
-
     col1, col2, col3 = st.columns([1, 2, 1])
 
     with col2:
@@ -166,7 +153,6 @@ else:
         if "upload_key" not in st.session_state:
             st.session_state.upload_key = 0
 
-        # ================= ENVIAR =================
         if st.session_state.pagina == "principal":
 
             st.header("📤 Enviar Nueva Reserva")
@@ -196,17 +182,16 @@ else:
                         nombre_unico = f"{timestamp}__{arch.name}"
 
                         with open(
-                            f"reservas/pendientes/{area}/{nombre_unico}",
-                            "wb",
+                            f"reservas/pendientes/{area}/{nombre_unico}", "wb"
                         ) as f:
                             f.write(data)
 
                         with open(
-                            f"reservas/enviados/{area}/{nombre_unico}",
-                            "wb",
+                            f"reservas/enviados/{area}/{nombre_unico}", "wb"
                         ) as f:
                             f.write(data)
 
+                        # ===== METADATA =====
                         metadata = {
                             "archivo": arch.name,
                             "area": area,
@@ -221,8 +206,7 @@ else:
                         }
 
                         with open(
-                            f"reservas/enviados/{area}/{nombre_unico}.json",
-                            "w",
+                            f"reservas/enviados/{area}/{nombre_unico}.json", "w"
                         ) as jf:
                             json.dump(metadata, jf, indent=4)
 
@@ -238,15 +222,12 @@ else:
             st.header("📄 Historial")
 
             col1, col2 = st.columns([5, 1])
-
-            with col1:
-                area_sel = st.selectbox(
-                    "Filtrar por área",
-                    ["Todas"] + areas
-                )
+            
+            with col1:        
+                area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
 
             with col2:
-                st.write("")
+                st.write("")  # ayuda a bajar el botón
                 if st.button("🔄"):
                     st.rerun()
 
@@ -288,58 +269,33 @@ else:
 
                     col1, col2 = st.columns([3, 1])
 
+                    ruta_firmado = f"reservas/firmadas/{a}/{f}"
+                    ruta_rechazado = f"reservas/rechazados/{a}/{f}"
+# --- NUEVO BLOQUE UNIFICADO ---
                     ruta_json = f"reservas/enviados/{a}/{f}.json"
-
                     metadata = {}
-
                     if os.path.exists(ruta_json):
-
                         with open(ruta_json, "r") as jf:
                             metadata = json.load(jf)
 
-                    estado = metadata.get("estado", "Pendiente")
-
-                    if estado == "Firmado":
-
-                        col1.success(
-                            f"{nombre} ({a}) - 🟢 Firmado"
-                        )
-
-                    elif estado == "Entregado":
-
-                        col1.info(
-                            f"{nombre} ({a}) - 📦 Entregado"
-                        )
-
-                    elif estado == "Rechazado":
-
-                        razon = metadata.get(
-                            "motivo_rechazo",
-                            "Sin motivo"
-                        )
-
-                        col1.error(
-                            f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
-                        )
-
+                    if os.path.exists(ruta_firmado):
+                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
+                    elif os.path.exists(ruta_rechazado):
+                        # Aquí unimos el Rechazo con el Motivo en una sola caja roja
+                        razon = metadata.get("motivo_rechazo", "Sin motivo")
+                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}")
                     else:
+                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
 
-                        col1.warning(
-                            f"{nombre} ({a}) - 🔴 Pendiente"
-                        )
-
+                    # Aquí ponemos la fecha y el tiempo en letras chiquitas abajo
                     if metadata:
-
                         col1.caption(
                             f"📅 Enviado: {metadata.get('fecha_envio','')} | "
                             f"✍️ Firma: {metadata.get('fecha_firma','')} | "
                             f"⏱️ Tiempo: {metadata.get('tiempo_aprobacion','')}"
                         )
 
-                    if col2.button(
-                        "🗑️",
-                        key=f"hist_{a}_{f}_{i}"
-                    ):
+                    if col2.button("🗑️", key=f"hist_{a}_{f}_{i}"):
 
                         os.remove(f"reservas/enviados/{a}/{f}")
 
@@ -347,7 +303,6 @@ else:
                             os.remove(ruta_json)
 
                         st.rerun()
-
     # ================= INGENIERO =================
     elif rol == "ingeniero":
 
@@ -356,16 +311,12 @@ else:
         col1, col2 = st.columns([5, 1])
 
         with col1:
-            area = st.selectbox(
-                "Área",
-                ["Todas"] + areas
-            )
+            area = st.selectbox("Área", ["Todas"] + areas)
 
-        with col2:
-            st.write("")
-            if st.button("🔄"):
+        with col2: 
+            if st.button("🔄"): 
                 st.rerun()
-
+   
         archivos = []
 
         if area == "Todas":
@@ -380,7 +331,7 @@ else:
                         archivos.append((a, f))
 
         else:
-
+    
             carpeta = f"reservas/pendientes/{area}"
 
             if os.path.exists(carpeta):
@@ -398,13 +349,8 @@ else:
 
                 pdf_viewer(ruta, key=f"pdf_{a}_{arc}_{i}")
 
-                pw = st.text_input(
-                    "Contraseña",
-                    type="password",
-                    key=f"pw_{arc}_{i}"
-                )
+                pw = st.text_input("Contraseña", type="password", key=f"pw_{arc}_{i}")
 
-                # ================= FIRMA =================
                 if st.button("Firmar", key=f"f_{arc}_{i}"):
 
                     datos_firma = firmas_contrasena.get(a)
@@ -417,7 +363,7 @@ else:
 
                             doc = fitz.open(ruta)
 
-                            # ===== FIRMA CORREGIDA =====
+                            # ===== TU LÓGICA ORIGINAL =====
                             rect_firma = None
                             pagina_objetivo = None
 
@@ -436,12 +382,76 @@ else:
 
                                     x_centro = (ref.x0 + ref.x1) / 2
 
-                                    rect_firma = fitz.Rect(
-                                        x_centro - ancho_firma / 2,
-                                        ref.y0 - 60,
-                                        x_centro + ancho_firma / 2,
-                                        ref.y0 - 10,
-                                    )
+                                    def hay_contenido(page, rect):
+
+                                        texto = page.get_text("text", clip=rect)
+
+                                        if texto.strip():
+                                            return True
+
+                                        for d in page.get_drawings():
+
+                                            for item in d["items"]:
+
+                                                if item[0] == "l":
+
+                                                    p1, p2 = item[1], item[2]
+
+                                                    if rect.intersects(
+                                                        fitz.Rect(p1, p2)
+                                                    ):
+                                                        return True
+
+                                        return False
+
+                                    y_base_arriba = ref.y0 - 10
+
+                                    for _ in range(8):
+
+                                        rect_intento = fitz.Rect(
+                                            x_centro - ancho_firma / 2,
+                                            y_base_arriba - alto_firma,
+                                            x_centro + ancho_firma / 2,
+                                            y_base_arriba,
+                                        )
+
+                                        if not hay_contenido(page, rect_intento):
+
+                                            rect_firma = rect_intento
+
+                                            break
+
+                                        y_base_arriba -= 10
+
+                                    else:
+
+                                        y_base_abajo = ref.y1 + 15
+
+                                        for _ in range(12):
+
+                                            rect_intento = fitz.Rect(
+                                                x_centro - ancho_firma / 2,
+                                                y_base_abajo,
+                                                x_centro + ancho_firma / 2,
+                                                y_base_abajo + alto_firma,
+                                            )
+
+                                            if not hay_contenido(page, rect_intento):
+
+                                                rect_firma = rect_intento
+
+                                                break
+
+                                            y_base_abajo += 12
+
+                                        else:
+
+                                            rect_firma = fitz.Rect(
+                                                x_centro - ancho_firma / 2,
+                                                ref.y1 + 40,
+                                                x_centro + ancho_firma / 2,
+                                                ref.y1 + 40 + alto_firma,
+                                            )
 
                                     break
 
@@ -453,28 +463,22 @@ else:
                                 alto = pagina_objetivo.rect.height
 
                                 rect_firma = fitz.Rect(
-                                    ancho * 0.55,
-                                    alto * 0.65,
-                                    ancho * 0.85,
-                                    alto * 0.85,
+                                    ancho * 0.55, alto * 0.65, ancho * 0.85, alto * 0.85
                                 )
 
                             pagina_objetivo.insert_image(
-                                rect_firma,
-                                filename=ruta_firma
+                                rect_firma, filename=ruta_firma
                             )
 
-                            os.makedirs(
-                                f"reservas/firmadas/{a}",
-                                exist_ok=True
-                            )
+                            # ===== FIN LÓGICA ORIGINAL =====
 
-                            doc.save(
-                                f"reservas/firmadas/{a}/{arc}"
-                            )
+                            os.makedirs(f"reservas/firmadas/{a}", exist_ok=True)
+
+                            doc.save(f"reservas/firmadas/{a}/{arc}")
 
                             doc.close()
 
+                            # ===== ACTUALIZAR METADATA =====
                             ruta_json = f"reservas/enviados/{a}/{arc}.json"
 
                             if os.path.exists(ruta_json):
@@ -483,40 +487,75 @@ else:
                                     metadata = json.load(jf)
 
                                 fecha_envio = datetime.strptime(
-                                    metadata["fecha_envio"],
-                                    "%Y-%m-%d %I:%M %p"
+                                    metadata["fecha_envio"], "%Y-%m-%d %I:%M %p"
                                 )
 
                                 ahora = hora_colombia()
 
-                                diferencia = (
-                                    ahora.replace(tzinfo=None)
-                                    - fecha_envio
-                                )
+                                diferencia = ahora.replace(tzinfo=None) - fecha_envio
 
-                                minutos = int(
-                                    diferencia.total_seconds() / 60
-                                )
+                                minutos = int(diferencia.total_seconds() / 60)
 
                                 metadata["estado"] = "Firmado"
                                 metadata["firmado_por"] = st.session_state.user_name
                                 metadata["fecha_firma"] = ahora.strftime(
                                     "%Y-%m-%d %I:%M %p"
                                 )
-                                metadata["tiempo_aprobacion"] = (
-                                    f"{minutos} minutos"
-                                )
+                                metadata["tiempo_aprobacion"] = f"{minutos} minutos"
 
                                 with open(ruta_json, "w") as jf:
                                     json.dump(metadata, jf, indent=4)
 
                             os.remove(ruta)
 
-                            st.success(
-                                "✅ Documento firmado correctamente"
-                            )
+                            st.success("✅ Documento firmado correctamente")
 
                             st.rerun()
+
+                motivo = st.text_input("Motivo", key=f"m_{arc}_{i}")
+
+                if st.button("Rechazar", key=f"r_{arc}_{i}"):
+
+                    if motivo:
+
+                        os.makedirs(f"reservas/rechazados/{a}", exist_ok=True)
+
+                        shutil.move(ruta, f"reservas/rechazados/{a}/{arc}")
+
+                        with open(f"reservas/rechazados/{a}/{arc}.json", "w") as f:
+                            
+                            json.dump(
+                                {
+                                    "motivo": motivo,
+                                    "fecha_rechazo": hora_colombia().strftime("%Y-%m-%d %I:%M %p"),
+                                    "rechazado_por": st.session_state.user_name,
+                                    "area": a,
+                                    "archivo": arc,
+                                },
+                                f,
+                                indent=4,
+                            )
+
+                        # ===== ACTUALIZAR METADATA =====
+                        ruta_json = f"reservas/enviados/{a}/{arc}.json"
+
+                        if os.path.exists(ruta_json):
+
+                            with open(ruta_json, "r") as jf:
+                                metadata = json.load(jf)
+
+                            metadata["estado"] = "Rechazado"
+                            metadata["fecha_rechazo"] = hora_colombia().strftime(
+                            "%Y-%m-%d %I:%M %p"
+                            )
+
+                            metadata["rechazado_por"] = st.session_state.user_name
+                            metadata["motivo_rechazo"] = motivo
+
+                            with open(ruta_json, "w") as jf:
+                                json.dump(metadata, jf, indent=4)
+
+                        st.rerun()
 
     # ================= ALMACÉN =================
     elif rol == "almacen":
@@ -611,26 +650,6 @@ else:
                         f"reservas/archivo/{a}/{f}"
                     )
 
-                    ruta_json = f"reservas/enviados/{a}/{f}.json"
-
-                    if os.path.exists(ruta_json):
-
-                        with open(ruta_json, "r") as jf:
-                            metadata = json.load(jf)
-
-                        metadata["estado"] = "Entregado"
-
-                        metadata["fecha_entrega"] = hora_colombia().strftime(
-                            "%Y-%m-%d %I:%M %p"
-                        )
-
-                        metadata["entregado_por"] = st.session_state.user_name
-
-                        with open(ruta_json, "w") as jf:
-                            json.dump(metadata, jf, indent=4)
-
-                    st.success("✅ Documento entregado")
-
                     st.rerun()
 
                 # ===== ELIMINAR =====
@@ -708,7 +727,6 @@ else:
                                     metadata = json.load(jf)
 
                                 metadata["estado"] = "Rechazado"
-
                                 metadata["fecha_rechazo"] = hora_colombia().strftime(
                                     "%Y-%m-%d %I:%M %p"
                                 )
