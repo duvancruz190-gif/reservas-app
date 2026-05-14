@@ -288,7 +288,7 @@ else:
 
                     elif estado == "Rechazado":
 
-                        razon = metadata.get("motivo_rechazo", "Sin motivo")
+                         razon = metadata.get("motivo_rechazo", "Sin motivo")
 
                          col1.error(
                              f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
