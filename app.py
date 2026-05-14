@@ -646,7 +646,6 @@ else:
                     file_name=nombre,
                     key=f"down_{a}_{f}_{i}"
                 )
-                
             # ================= FIRMADOS =================
             if vista == "Firmados":
 
@@ -758,7 +757,6 @@ else:
                                     metadata = json.load(jf)
 
                                 metadata["estado"] = "Rechazado"
-
                                 metadata["fecha_rechazo"] = hora_colombia().strftime(
                                     "%Y-%m-%d %I:%M %p"
                                 )
@@ -773,6 +771,18 @@ else:
 
                             st.rerun()
 
+            # ================= ARCHIVADOS =================
+            else:
+
+                # ===== ELIMINAR =====
+                if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
+
+                    try:
+                        os.remove(ruta)
+                    except:
+                        pass
+
+                    st.rerun()                
             # ================= ARCHIVADOS =================
             else:
 
