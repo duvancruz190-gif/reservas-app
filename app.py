@@ -278,25 +278,15 @@ else:
                         with open(ruta_json, "r") as jf:
                             metadata = json.load(jf)
 
-                    estado = metadata.get("estado", "Pendiente")
-                    
-                    if estado == "Firmado":
-                         col1.success(f"{nombre} ({a}) - 🟢 Firmado")
-
-                    elif estado == "Entregado":
-                        col1.info(f"{nombre} ({a}) - 📦 Entregado")
-
-                    elif estado == "Rechazado":
-
-                         razon = metadata.get("motivo_rechazo", "Sin motivo")
-
-                         col1.error(
-                             f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
-                         )
-
+                    if os.path.exists(ruta_firmado):
+                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
+                    elif os.path.exists(ruta_rechazado):
+                        # Aquí unimos el Rechazo con el Motivo en una sola caja roja
+                        razon = metadata.get("motivo_rechazo", "Sin motivo")
+                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}")
                     else:
                         col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
-                        
+
                     # Aquí ponemos la fecha y el tiempo en letras chiquitas abajo
                     if metadata:
                         col1.caption(
@@ -651,37 +641,26 @@ else:
             if vista == "Firmados":
 
                 # ===== ARCHIVAR =====
-if col3.button("📁", key=f"a_{a}_{f}_{i}"):
+                if col3.button("📁", key=f"a_{a}_{f}_{i}"):
 
-    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
+                    os.makedirs(f"reservas/archivo/{a}", exist_ok=True)
 
-    shutil.move(
-        ruta,
-        f"reservas/archivo/{a}/{f}"
-    )
+                    shutil.move(
+                        ruta,
+                        f"reservas/archivo/{a}/{f}"
+                    )
 
-    # ===== ACTUALIZAR METADATA =====
-    ruta_json = f"reservas/enviados/{a}/{f}.json"
+                    st.rerun()
 
-    if os.path.exists(ruta_json):
+                # ===== ELIMINAR =====
+                if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
 
-        with open(ruta_json, "r") as jf:
-            metadata = json.load(jf)
+                    try:
+                        os.remove(ruta)
+                    except:
+                        pass
 
-        metadata["estado"] = "Entregado"
-
-        metadata["fecha_entrega"] = hora_colombia().strftime(
-            "%Y-%m-%d %I:%M %p"
-        )
-
-        metadata["entregado_por"] = st.session_state.user_name
-
-        with open(ruta_json, "w") as jf:
-            json.dump(metadata, jf, indent=4)
-
-    st.success("✅ Documento entregado")
-
-    st.rerun()
+                    st.rerun()
 
                 # ===== RECHAZAR =====
                 with col5:
