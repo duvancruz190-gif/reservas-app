@@ -5,10 +5,38 @@ from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
 import time
+def limpiar_archivos_antiguos():
+    limite_dias = 15
+    ahora = time.time()
+    limite_segundos = limite_dias * 24 * 60 * 60
+
+    carpetas = [
+        "reservas/pendientes",
+        "reservas/enviados",
+        "reservas/firmadas",
+        "reservas/archivo",
+        "reservas/rechazados",
+    ]
+
+    for carpeta in carpetas:
+        if not os.path.exists(carpeta):
+            continue
+
+        for root, dirs, files in os.walk(carpeta):
+            for file in files:
+                ruta = os.path.join(root, file)
+
+                try:
+                    # tiempo de creación/modificación
+                    if ahora - os.path.getmtime(ruta) > limite_segundos:
+                        os.remove(ruta)
+                except:
+                    pass
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
+limpiar_archivos_antiguos()
 
 # ================= LIMPIEZA AUTOMÁTICA =================
 def limpiar_archivos_viejos():
