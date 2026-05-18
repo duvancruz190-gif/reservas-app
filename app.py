@@ -269,24 +269,36 @@ else:
 
                     col1, col2 = st.columns([3, 1])
 
-                    ruta_firmado = f"reservas/firmadas/{a}/{f}"
-                    ruta_rechazado = f"reservas/rechazados/{a}/{f}"
-# --- NUEVO BLOQUE UNIFICADO ---
                     ruta_json = f"reservas/enviados/{a}/{f}.json"
                     metadata = {}
+                    
                     if os.path.exists(ruta_json):
+                        
                         with open(ruta_json, "r") as jf:
                             metadata = json.load(jf)
 
-                    if os.path.exists(ruta_firmado):
-                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
-                    elif os.path.exists(ruta_rechazado):
-                        # Aquí unimos el Rechazo con el Motivo en una sola caja roja
-                        razon = metadata.get("motivo_rechazo", "Sin motivo")
-                        col1.error(f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}")
-                    else:
-                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
+                    estado = metadata.get("estado", "Pendiente")
 
+                    if estado == "Firmado":
+
+                        col1.success(f"{nombre} ({a}) - 🟢 Firmado")
+
+                    elif estado == "Archivado":
+
+                        col1.info(f"{nombre} ({a}) - 📦 Entregado")
+
+                    elif estado == "Rechazado":
+
+                        razon = metadata.get("motivo_rechazo", "Sin motivo")
+
+                     col1.error(
+                         f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
+                     )
+
+                    else:
+
+                        col1.warning(f"{nombre} ({a}) - 🔴 Pendiente")
+                        
                     # Aquí ponemos la fecha y el tiempo en letras chiquitas abajo
                     if metadata:
                         col1.caption(
