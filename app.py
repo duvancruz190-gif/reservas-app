@@ -291,9 +291,9 @@ else:
 
                         razon = metadata.get("motivo_rechazo", "Sin motivo")
 
-                         col1.error(
-                             f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
-                         )
+                        col1.error(
+                            f"{nombre} ({a}) - 🚫 Rechazado | Motivo: {razon}"
+                        )
 
                     else:
 
