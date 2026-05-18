@@ -575,7 +575,7 @@ else:
                             with open(ruta_json, "r") as jf:
                                 metadata = json.load(jf)
 
-                            metadata["estado"] = "Rechazado"
+                            metadata["estado"] = "Rechazado por Ingeniero"
                             metadata["fecha_rechazo"] = hora_colombia().strftime(
                             "%Y-%m-%d %I:%M %p"
                             )
