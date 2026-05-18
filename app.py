@@ -619,8 +619,8 @@ else:
                 else f"reservas/archivo/{a}/{f}"
             )
 
-            col1, col2, col3, col4, col5 = st.columns(
-                [5, 1, 1, 1, 3],
+            col1, col2, col3, col5 = st.columns(
+                [5, 1, 1, 3],
                 vertical_alignment="center"
             )
 
@@ -649,16 +649,6 @@ else:
                         ruta,
                         f"reservas/archivo/{a}/{f}"
                     )
-
-                    st.rerun()
-
-                # ===== ELIMINAR =====
-                if col4.button("🗑️", key=f"del_f_{a}_{f}_{i}"):
-
-                    try:
-                        os.remove(ruta)
-                    except:
-                        pass
 
                     st.rerun()
 
