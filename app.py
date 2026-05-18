@@ -254,8 +254,12 @@ else:
                         for f in os.listdir(ruta):
 
                             if f.endswith(".pdf"):
-                                archivos_totales.append((a, f))
 
+                                nombre_visible = mostrar_nombre(f).lower()
+                                texto_busqueda = buscador.lower()
+
+                                if texto_busqueda in nombre_visible:
+                                    archivos_totales.append((a, f))
             else:
 
                 ruta = f"reservas/enviados/{area_sel}"
@@ -264,8 +268,13 @@ else:
 
                     for f in os.listdir(ruta):
 
-                        if f.endswith(".pdf"):
-                            archivos_totales.append((area_sel, f))
+                       if f.endswith(".pdf"):
+                           
+                            nombre_visible = mostrar_nombre(f).lower()
+                            texto_busqueda = buscador.lower()
+
+                            if texto_busqueda in nombre_visible:
+                                archivos_totales.append((area_sel, f))
 
             if not archivos_totales:
 
