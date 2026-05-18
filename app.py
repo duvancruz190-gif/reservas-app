@@ -608,10 +608,7 @@ else:
             )
 
         with col3:
-
-            st.caption("Actualizar página")
-
-            st.markdown("<div style='margin-top:-50px'></div>", unsafe_allow_html=True)
+            st.write("")
 
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
