@@ -660,6 +660,19 @@ else:
                         f"reservas/archivo/{a}/{f}"
                     )
 
+                    # ===== ACTUALIZAR ESTADO =====
+                    ruta_json = f"reservas/enviados/{a}/{f}.json"
+
+                    if os.path.exists(ruta_json):
+
+                        with open(ruta_json, "r") as jf:
+                            metadata = json.load(jf)
+
+                        metadata["estado"] = "Archivado"
+
+                        with open(ruta_json, "w") as jf:
+                            json.dump(metadata, jf, indent=4)
+
                     st.rerun()
 
                 # ===== RECHAZAR =====
