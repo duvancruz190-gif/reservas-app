@@ -613,7 +613,10 @@ else:
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
                 
-        vista = st.radio("Vista", ["Firmados", "Archivados", "Rechazados"])
+        vista = st.radio(
+            "Vista",
+            ["Firmados", "Archivados", "Rechazados"]
+        )
 
         archivos = []
 
@@ -621,11 +624,17 @@ else:
 
             for a in areas:
 
-                carpeta = (
-                    f"reservas/firmadas/{a}"
-                    if vista == "Firmados"
-                    else f"reservas/archivo/{a}"
-                )
+                if vista == "Firmados":
+
+                    carpeta = f"reservas/firmadas/{a}"
+
+                elif vista == "Archivados":
+
+                    carpeta = f"reservas/archivo/{a}"
+
+                else:
+
+                    carpeta = f"reservas/rechazados/{a}"
 
                 if os.path.exists(carpeta):
 
@@ -646,12 +655,18 @@ else:
                                  
         else:
 
-            carpeta = (
-                f"reservas/firmadas/{area}"
-                if vista == "Firmados"
-                else f"reservas/archivo/{area}"
-            )
+            if vista == "Firmados":
+                
+                carpeta = f"reservas/firmadas/{area}"
 
+            elif vista == "Archivados"
+
+                 carpeta = f"reservas/archivo/{area}"
+
+            else:
+
+                 carpeta = f"reservas/rechazados/{area}"
+                
             os.makedirs(carpeta, exist_ok=True)
 
             for f in os.listdir(carpeta):
@@ -673,12 +688,18 @@ else:
 
             nombre = mostrar_nombre(f)
 
-            ruta = (
-                f"reservas/firmadas/{a}/{f}"
-                if vista == "Firmados"
-                else f"reservas/archivo/{a}/{f}"
-            )
-        
+            if vista == "Firmados":
+
+                ruta = f"reservas/firmadas/{a}/{f}"
+
+            elif vista == "Archivados":
+
+                ruta = f"reservas/archivo/{a}/{f}"
+
+            else:
+
+                ruta = f"reservas/rechazados/{a}/{f}"
+
             # ================= FIRMADOS =================
             if vista == "Firmados":
 
@@ -754,8 +775,13 @@ else:
                              exist_ok=True
                          )
 
-                         ruta_json = f"reservas/enviados/{a}/{f}.json"
+                         shutil.move(
+                             ruta,
+                             f"reservas/rechazados/{a}/{f}"
+                         )
 
+                         ruta_json = f"reservas/enviados/{a}/{f}.json"
+                
                          if os.path.exists(ruta_json):
 
                              with open(ruta_json, "r") as jf:
