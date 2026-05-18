@@ -619,7 +619,7 @@ else:
                 else f"reservas/archivo/{a}/{f}"
             )
 
-            col1, col2, col3, col5 = st.columns(
+            col1, col2, col3, col4 = st.columns(
                 [5, 1, 1, 3],
                 vertical_alignment="center"
             )
@@ -653,7 +653,7 @@ else:
                     st.rerun()
 
                 # ===== RECHAZAR =====
-                with col5:
+                with col4:
 
                     sub1, sub2 = st.columns(
                         [3, 1],
