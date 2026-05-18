@@ -810,6 +810,22 @@ else:
                 )
 
                 col1_a.write(f"📄 {nombre} ({a})")
+
+                ruta_json = f"reservas/enviados/{a}/{f}.json"
+
+                if os.path.exists(ruta_json):
+
+                    with open(ruta_json, "r") as jf:
+                        metadata = json.load(jf)
+
+                    if "Rechazado" in metadata.get("estado", ""):
+
+                        col1_a.caption(
+                            f"🚫 {metadata.get('estado')} | "
+                            f"📝 {metadata.get('motivo_rechazo', '')}"
+                        )
+
+                    
                 
                 with open(ruta, "rb") as file:
 
