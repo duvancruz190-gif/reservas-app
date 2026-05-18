@@ -809,8 +809,6 @@ else:
                     vertical_alignment="center"
                 )
 
-                col1_a.write(f"📄 {nombre} ({a})")
-
                 ruta_json = f"reservas/enviados/{a}/{f}.json"
 
                 texto_estado = ""
