@@ -659,7 +659,7 @@ else:
                 
                 carpeta = f"reservas/firmadas/{area}"
 
-            elif vista == "Archivados"
+            elif vista == "Archivados":
 
                  carpeta = f"reservas/archivo/{area}"
 
