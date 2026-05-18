@@ -813,20 +813,23 @@ else:
 
                 ruta_json = f"reservas/enviados/{a}/{f}.json"
 
+                texto_estado = ""
+
                 if os.path.exists(ruta_json):
 
                     with open(ruta_json, "r") as jf:
                         metadata = json.load(jf)
 
-                    if "Rechazado" in metadata.get("estado", ""):
+                    estado_doc = metadata.get("estado", "")
 
-                        col1_a.caption(
-                            f"🚫 {metadata.get('estado')} | "
-                            f"📝 {metadata.get('motivo_rechazo', '')}"
-                        )
+                    if "Rechazado" in estado_doc:
 
-                    
-                
+                        texto_estado = f" | 🚫 {estado_doc}"
+                        
+                col1_a.write(
+                    f"📄 {nombre} ({a}){texto_estado}"
+                )
+
                 with open(ruta, "rb") as file:
 
                     col2_a.download_button(
