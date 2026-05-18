@@ -611,7 +611,7 @@ else:
 
             st.caption("Actualizar página")
 
-            st.markdown("<div style='margin-top:-20px'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:-50px'></div>", unsafe_allow_html=True)
 
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
