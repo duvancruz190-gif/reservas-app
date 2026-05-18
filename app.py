@@ -221,13 +221,23 @@ else:
 
             st.header("📄 Historial")
 
-            col1, col2 = st.columns([5, 1])
+            col1, col2, col3 = st.columns([3, 3, 1])
             
             with col1:        
-                area_sel = st.selectbox("Filtrar por área", ["Todas"] + areas)
+                area_sel = st.selectbox(
+                    "Filtrar por área",
+                    ["Todas"] + areas
+                )
 
             with col2:
-                st.write("")  # ayuda a bajar el botón
+                buscador = st.text_input(
+                    "🔍 Buscar reserva",
+                    placeholder="Ej: 2234657"
+                )
+
+            with col3:
+                st.write("")
+
                 if st.button("🔄"):
                     st.rerun()
 
