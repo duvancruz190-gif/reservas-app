@@ -306,7 +306,7 @@ else:
 
                         col1.info(f"{nombre} ({a}) - 📦 Entregado")
 
-                    elif estado == "Rechazado":
+                    elif "Rechazado" in estado:
 
                         razon = metadata.get("motivo_rechazo", "Sin motivo")
 
@@ -753,6 +753,23 @@ else:
                              f"reservas/rechazados/{a}",
                              exist_ok=True
                          )
+
+                         ruta_json = f"reservas/enviados/{a}/{f}.json"
+
+                         if os.path.exists(ruta_json):
+
+                             with open(ruta_json, "r") as jf:
+                                 metadata = json.load(jf)
+
+                             metadata["estado"] = "Rechazado por Almacén"
+                             metadata["motivo_rechazo"] = motivo
+                             metadata["rechazado_por"] = st.session_state.user_name
+                             metadata["fecha_rechazo"] = hora_colombia().strftime(
+                                 "%Y-%m-%d %I:%M %p"
+                             )
+
+                             with open(ruta_json, "w") as jf:
+                                 json.dump(metadata, jf, indent=4)
 
                          st.success("Documento rechazado")
 
