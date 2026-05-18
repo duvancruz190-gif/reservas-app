@@ -604,7 +604,7 @@ else:
         )
 
         with col3:
-            st.write"")
+            st.write("")
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
 
