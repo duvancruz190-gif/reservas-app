@@ -596,12 +596,16 @@ else:
         col1, col2, col3 = st.columns([3, 3, 1])
 
         with col1:
-            area = st.selectbox("Área", ["Todas"] + areas)
+            area = st.selectbox(
+                "Área",
+                ["Todas"] + areas
+            )
 
-        busqueda = st.text_input(
-            "🔍 Buscar reserva",
-            placeholder="Ej: 78384747 o nombre PDF"
-        )
+        with col2:
+            busqueda = st.text_input(
+                "🔍 Buscar reserva",
+                placeholder="Ej: 22345678 o nombre PDF"
+            )
 
         with col3:
             st.write("")
