@@ -608,10 +608,12 @@ else:
             )
 
         with col3:
-            st.write("")
+
+            st.caption("Actualizar página")
+
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
-
+                
         vista = st.radio("Vista", ["Firmados", "Archivados"])
 
         archivos = []
