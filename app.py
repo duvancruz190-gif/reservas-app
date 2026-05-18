@@ -593,7 +593,7 @@ else:
 
         st.header("📦 Gestión de Documentos")
 
-        col1, col2 = st.columns([5, 1])
+        col1, col2, col3 = st.columns([3, 3, 1])
 
         with col1:
             area = st.selectbox("Área", ["Todas"] + areas)
@@ -603,8 +603,8 @@ else:
             placeholder="Ej: 78384747 o nombre PDF"
         )
 
-        with col2:
-            st.write("")
+        with col3:
+            st.write"")
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
 
