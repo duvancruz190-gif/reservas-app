@@ -598,6 +598,11 @@ else:
         with col1:
             area = st.selectbox("Área", ["Todas"] + areas)
 
+        busqueda = st.text_input(
+            "🔍 Buscar reserva",
+            placeholder="Ej: 78384747 o nombre PDF"
+        )
+
         with col2:
             st.write("")
             if st.button("🔄", key="refresh_almacen"):
@@ -622,8 +627,18 @@ else:
                     for f in os.listdir(carpeta):
 
                         if f.endswith(".pdf"):
-                            archivos.append((a, f))
 
+                            nombre_visible = mostrar_nombre(f)
+                            
+                            if (
+                                busqueda.strip() == ""
+                                or busqueda.lower() in nombre_visible.lower()
+                                or busqueda.lower() in f.lower()
+
+                             ):
+
+                                 archivos.append((a, f))
+                                 
         else:
 
             carpeta = (
@@ -637,8 +652,17 @@ else:
             for f in os.listdir(carpeta):
 
                 if f.endswith(".pdf"):
-                    archivos.append((area, f))
 
+                    nombre_visible = mostrar_nombre(f)
+
+                    if (
+                        busqueda.strip() == ""
+                        or busqueda.lower() in nombre_visible.lower()
+                        or busqueda.lower() in f.lower()
+                    ):
+
+                        archivos.append((area, f))
+                    
         # ===== MOSTRAR ARCHIVOS =====
         for i, (a, f) in enumerate(archivos):
 
