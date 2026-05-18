@@ -688,11 +688,27 @@ else:
             # ================= ARCHIVADOS =================
             else:
 
-                if col3.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
+                col1_a, col2_a, col3_a = st.columns(
+                    [6, 1, 1],
+                    vertical_alignment="center"
+                )
 
-                    try:    
+                col1_a.write(f"📄 {nombre} ({a})")
+                
+                with open(ruta, "rb") as file:
+
+                    col2_a.download_button(
+                        "⬇️",
+                        file,
+                        file_name=nombre,
+                        key=f"down_arch_{a}_{f}_{i}"
+                    )
+
+                if col3_a.button("🗑️", key=f"del_a_{a}_{f}_{i}"):
+
+                    try:
                         os.remove(ruta)
                     except:
                         pass
-
+            
                     st.rerun()
