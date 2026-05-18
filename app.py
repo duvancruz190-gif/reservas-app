@@ -613,7 +613,7 @@ else:
             if st.button("🔄", key="refresh_almacen"):
                 st.rerun()
                 
-        vista = st.radio("Vista", ["Firmados", "Archivados"])
+        vista = st.radio("Vista", ["Firmados", "Archivados", "Rechazados"])
 
         archivos = []
 
