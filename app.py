@@ -609,6 +609,11 @@ else:
 
         with col3:
 
+            st.markdown(
+                "<div style='height:28px'></div>",
+                unsafe_allow_html=True
+            )
+
             st.caption("Actualizar página")
 
             if st.button("🔄", key="refresh_almacen"):
