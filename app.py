@@ -5,85 +5,10 @@ from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
 import time
-def limpiar_archivos_viejos():
-    limite = datetime.now() - timedelta(days=15)
-
-    carpetas = [
-        "reservas/enviados",
-        "reservas/firmadas",
-        "reservas/archivo",
-        "reservas/rechazados",
-        "reservas/pendientes"
-    ]
-
-    for carpeta in carpetas:
-        if not os.path.exists(carpeta):
-            continue
-
-        for root, dirs, files in os.walk(carpeta):
-            for file in files:
-
-                if not file.endswith(".pdf"):
-                    continue
-
-                ruta = os.path.join(root, file)
-
-                try:
-                    fecha_mod = datetime.fromtimestamp(os.path.getmtime(ruta))
-
-                    if fecha_mod < limite:
-                        os.remove(ruta)
-
-                        json_path = ruta + ".json"
-                        if os.path.exists(json_path):
-                            os.remove(json_path)
-
-                except:
-                    pass
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 st.set_page_config(page_title="Gestión de Reservas", layout="wide")
-limpiar_archivos_viejos()
-
-# ================= LIMPIEZA AUTOMÁTICA =================
-def limpiar_archivos_viejos():
-    limite = datetime.now() - timedelta(days=15)
-
-    carpetas = [
-        "reservas/enviados",
-        "reservas/firmadas",
-        "reservas/archivo",
-        "reservas/rechazados",
-        "reservas/pendientes"
-    ]
-
-    for carpeta in carpetas:
-        if not os.path.exists(carpeta):
-            continue
-
-        for root, dirs, files in os.walk(carpeta):
-            for file in files:
-
-                if not file.endswith(".pdf"):
-                    continue
-
-                ruta = os.path.join(root, file)
-
-                try:
-                    fecha_mod = datetime.fromtimestamp(os.path.getmtime(ruta))
-
-                    if fecha_mod < limite:
-
-                        os.remove(ruta)
-
-                        json_path = ruta + ".json"
-                        if os.path.exists(json_path):
-                            os.remove(json_path)
-
-                except:
-                    pass
-
 
 # --- ESTILO ---
 st.markdown(
