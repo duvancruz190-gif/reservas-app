@@ -36,16 +36,16 @@ section[data-testid="stSidebar"] * { color: white !important; }
 def hora_colombia():
     return datetime.now(ZoneInfo("America/Bogota"))
     
-    def enviar_notificacion_teams(area, nombre_pdf):
+def enviar_notificacion_teams(area, nombre_pdf):
         
-        correo_destino = CORREOS_AREAS.get(area)
+    correo_destino = CORREOS_AREAS.get(area)
 
-        if not correo_destino:
-            return
+    if not correo_destino:
+        return
 
-        payload = {
-            "email_ingeniero": correo_destino,
-            "mensaje": f"""
+     payload = {
+        "email_ingeniero": correo_destino,
+        "mensaje": f"""
 
 Hola, se ha generado una nueva solicitud de reserva.
 Área: {area}
@@ -65,8 +65,8 @@ https://duvancruz190-gif-reservas-app-app-jerhgd.streamlit.app/
 
         )
 
-        except Exception as e:
-            print(f"Error Teams: {e}")
+     except Exception as e:
+        print(f"Error Teams: {e}")
             
 # --- CARPETAS ---
 for carpeta in [
@@ -79,11 +79,16 @@ for carpeta in [
 ]:
     os.makedirs(carpeta, exist_ok=True)
 
+CORREOS_AREAS = {
+    "Logística": "arojasg@elementia.com",
+    "Calidad": "felipe@elementia.com",
+}
+
 areas = [
     "Producción",
     "Calidad",
     "Mantenimiento",
-    "Logística": "arojasg@elementia.com",
+    "Logística",
     "Recursos Humanos",
     "Ambiental",
     "Salud Ocupacional",
