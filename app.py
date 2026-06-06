@@ -43,29 +43,34 @@ def enviar_notificacion_teams(area, nombre_pdf):
     if not correo_destino:
         return
 
-     payload = {
+    payload = {
         "email_ingeniero": correo_destino,
         "mensaje": f"""
 
 Hola, se ha generado una nueva solicitud de reserva.
+
 Área: {area}
 Archivo: {nombre_pdf}
 
 Por favor, ingresa al siguiente link para autorizarla.
+
 https://duvancruz190-gif-reservas-app-app-jerhgd.streamlit.app/
 """
     }
         
     try:
 
-        requests.post(
+        response = requests.post(
             "https://defaultd7ede7c4383c4913a229101472a2b2.70.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/32a7ab9e4f1245d99b77c8fc67121246/triggers/manual/paths/invoke?api-version=1",
             json=payload,
              timeout=10
 
         )
 
-     except Exception as e:
+        print("STATUS:", response.status_code)
+        print("RESPUESTA:", response.text)
+
+    except Exception as e:
         print(f"Error Teams: {e}")
             
 # --- CARPETAS ---
