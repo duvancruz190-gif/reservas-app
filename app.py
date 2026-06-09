@@ -214,6 +214,7 @@ else:
 
                     os.makedirs(f"reservas/pendientes/{area}", exist_ok=True)
                     os.makedirs(f"reservas/enviados/{area}", exist_ok=True)
+                    st.success("Entró al botón Enviar")
 
                     for arch in archivos:
 
