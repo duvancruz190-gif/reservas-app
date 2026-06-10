@@ -67,8 +67,8 @@ https://duvancruz190-gif-reservas-app-app-jerhgd.streamlit.app/
 
         )
 
-        print("STATUS:", response.status_code)
-        print("RESPUESTA:", response.text)
+        st.error(f"STATUS: {response.status_code}")
+        st.error(response.text)
 
     except Exception as e:
         print(f"Error Teams: {e}")
