@@ -70,6 +70,8 @@ https://duvancruz190-gif-reservas-app-app-jerhgd.streamlit.app/
         st.error(f"STATUS: {response.status_code}")
         st.error(response.text)
 
+        st.stop()
+
     except Exception as e:
         print(f"Error Teams: {e}")
             
