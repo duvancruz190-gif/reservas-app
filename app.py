@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import fitz
-import requests
 from streamlit_pdf_viewer import pdf_viewer
 import json
 import shutil
@@ -35,46 +34,8 @@ section[data-testid="stSidebar"] * { color: white !important; }
 # --- HORA COLOMBIA ---
 def hora_colombia():
     return datetime.now(ZoneInfo("America/Bogota"))
-    
-def enviar_notificacion_teams(area, nombre_pdf):
-        
-    correo_destino = CORREOS_AREAS.get(area)
 
-    if not correo_destino:
-        return
 
-    payload = {
-        "email_ingeniero": correo_destino,
-        "mensaje": f"""
-
-Hola, se ha generado una nueva solicitud de reserva.
-
-Área: {area}
-Archivo: {nombre_pdf}
-
-Por favor, ingresa al siguiente link para autorizarla.
-
-https://duvancruz190-gif-reservas-app-app-jerhgd.streamlit.app/
-"""
-    }
-        
-    try:
-
-        response = requests.post(
-            "https://defaultd7ede7c4383c4913a229101472a2b2.70.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/32a7ab9e4f1245d99b77c8fc67121246/triggers/manual/paths/invoke?api-version=1",
-            json=payload,
-             timeout=10
-
-        )
-
-        st.error(f"STATUS: {response.status_code}")
-        st.error(response.text)
-
-        st.stop()
-
-    except Exception as e:
-        print(f"Error Teams: {e}")
-            
 # --- CARPETAS ---
 for carpeta in [
     "reservas/pendientes",
@@ -85,11 +46,6 @@ for carpeta in [
     "reservas/rechazados",
 ]:
     os.makedirs(carpeta, exist_ok=True)
-
-CORREOS_AREAS = {
-    "Logística": "arojasg@elementia.com",
-    "Calidad": "felipe@elementia.com",
-}
 
 areas = [
     "Producción",
@@ -188,9 +144,6 @@ else:
 
     st.title("📋 Gestión de Reservas")
 
-    if "debug_teams" in st.session_state:
-        st.error(st.session_state["debug_teams"])
-
     # ================= USUARIO =================
     if rol == "usuario":
 
@@ -219,7 +172,6 @@ else:
 
                     os.makedirs(f"reservas/pendientes/{area}", exist_ok=True)
                     os.makedirs(f"reservas/enviados/{area}", exist_ok=True)
-                    st.success("Entró al botón Enviar")
 
                     for arch in archivos:
 
@@ -257,7 +209,6 @@ else:
                             f"reservas/enviados/{area}/{nombre_unico}.json", "w"
                         ) as jf:
                             json.dump(metadata, jf, indent=4)
-                        enviar_notificacion_teams(area, arch.name)
 
                     st.success(f"{len(archivos)} archivos enviados")
 
