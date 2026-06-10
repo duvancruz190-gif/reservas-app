@@ -2,4 +2,3 @@ PyMuPDF
 streamlit-pdf-viewer
 streamlit-drawable-canvas
 matplotlib
-requests
