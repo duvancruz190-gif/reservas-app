@@ -188,6 +188,9 @@ else:
 
     st.title("📋 Gestión de Reservas")
 
+    if "debug_teams" in st.session_state:
+        st.error(st.session_state["debug_teams"])
+
     # ================= USUARIO =================
     if rol == "usuario":
 
